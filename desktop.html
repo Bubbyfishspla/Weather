@@ -12,21 +12,21 @@ svg text{fill:var(--tx)}
 body{margin:0;background:var(--bg);color:var(--tx);font:14px Inter,-apple-system,system-ui,sans-serif}
 a{color:#6db3ff;text-decoration:none}
 #side{position:fixed;left:0;top:0;bottom:0;width:110px;padding:18px 12px;display:flex;flex-direction:column;gap:6px;font-size:12px}
-#side .logo{width:44px;height:44px;background:var(--acc);color:#1a1a1a;border-radius:6px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.1;margin-bottom:14px}
+#side .logo{width:44px;height:44px;background:var(--acc);color:#1a1a1a;border-radius:10px;font-size:26px;display:flex;align-items:center;justify-content:center;line-height:1;margin-bottom:14px}
 #side a{color:var(--tx);padding:8px 6px;border-radius:8px;display:flex;gap:8px;align-items:center;cursor:pointer}#side a:hover{background:var(--chip)}
 #top{position:fixed;top:12px;left:0;right:0;display:flex;justify-content:center;z-index:5;pointer-events:none}
 .pill{pointer-events:auto;display:flex;align-items:center;gap:4px;background:var(--card);border-radius:40px;padding:5px;box-shadow:0 2px 14px rgba(0,0,0,.45)}
 .pill button{border:0;background:none;font:500 13px Inter;padding:8px 14px;border-radius:30px;cursor:pointer;color:var(--tx)}
 .pill button.loc{background:var(--acc);color:#1a1a1a}.pill button.act{background:var(--chip)}
-.mini{position:fixed;left:140px;top:58px;background:var(--card);border-radius:10px;box-shadow:0 1px 8px rgba(0,0,0,.15);padding:8px 12px;font-size:12px;display:flex;gap:8px;align-items:center}
+.mini{position:fixed;left:74px;top:18px;height:44px;z-index:6;background:var(--card);border-radius:10px;box-shadow:0 1px 8px rgba(0,0,0,.15);padding:0 14px;font-size:12px;display:flex;gap:8px;align-items:center;white-space:nowrap}
 .mini b{font-size:20px}
 main{max-width:940px;margin:0 auto;padding:96px 20px 40px}
 h1{font-size:15px;margin:0 0 4px;font-weight:600}.meta{font-size:12px;color:var(--mut);margin-bottom:14px}
 h2{font-size:15px;font-weight:600;margin:34px 0 10px}
 .alert{background:#5a2420;color:#fff;border-radius:6px;padding:12px 14px;margin-bottom:10px;font-size:13px}.alert small{display:block;color:#f0c8c4;margin-top:2px}
-.hero{border-radius:6px;color:#fff;padding:26px 24px;display:flex;justify-content:space-between;align-items:flex-end;min-height:150px;background:linear-gradient(120deg,#0d3b44,#1d6b73)}
+.hero{border-radius:6px;color:#fff;padding:26px 24px;display:flex;justify-content:space-between;align-items:center;min-height:150px;background:linear-gradient(120deg,#0d3b44,#1d6b73)}
 .hero .t{font-size:56px;font-weight:500;line-height:1}.hero .s{font-size:12px;margin-top:10px;line-height:1.6}
-.hero .ic{text-align:center;font-size:12px;font-weight:600}.hero .ic div{font-size:42px;margin-bottom:4px}
+.hero .ic{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:130px;text-align:center;font-size:12px;font-weight:600}.hero .ic div{font-size:54px;line-height:1;height:60px;display:flex;align-items:center;justify-content:center;margin-bottom:8px}
 .strip{overflow-x:auto;background:var(--card);border-radius:12px;margin-top:10px}
 .in{position:relative}
 .cols{display:flex}.cols div{flex:none;width:64px;text-align:center;font-size:11px;padding-top:8px}
@@ -51,9 +51,10 @@ h2{font-size:15px;font-weight:600;margin:34px 0 10px}
 dialog{background:var(--card);color:var(--tx);border:0;border-radius:14px;width:380px;box-shadow:0 10px 40px rgba(0,0,0,.3)}dialog input{width:100%;padding:10px;font-size:14px;border:0;background:var(--chip);color:var(--tx);border-radius:8px}
 dialog .r{padding:10px 4px;border-bottom:1px solid var(--ln);cursor:pointer}dialog .r:hover{background:var(--chip)}
 .err{padding:60px;text-align:center;color:var(--mut)}
+@media(max-width:1150px){.mini{display:none}}
 @media(max-width:900px){#side,.mini{display:none}.grid{grid-template-columns:1fr 1fr}.dr{grid-template-columns:54px 44px 1fr 40px 90px 40px}.dr .tx{display:none}}
 </style></head><body>
-<div id="side"><div class="logo">Weather</div><a onclick="go('top')">🌤 Forecasts</a><a onclick="go('radar')">📡 Radar</a></div>
+<div id="side"><div class="logo" id="logo">🌤</div><a onclick="go('top')">🌤 Forecasts</a><a onclick="go('radar')">📡 Radar</a></div>
 <div id="top"><div class="pill"><button class="loc" id="locBtn">📍 …</button><button class="act" onclick="go('top')">Today</button><button onclick="go('hourly')">Hourly</button><button onclick="go('daily')">10 Day</button><button onclick="go('cards')">Conditions</button><button onclick="go('aq')">Air Quality</button></div></div>
 <div class="mini" id="mini"></div>
 <main id="main"><div class="err">Loading…</div></main>
@@ -101,7 +102,7 @@ function moonSvg(p){const k=Math.cos(2*Math.PI*p),rx=40*Math.abs(k),w=p<.5,s=w?(
  return `<svg viewBox="0 0 100 100" style="max-height:90px"><circle cx="50" cy="50" r="40" fill="#1b1d22"/><path d="M50 10A40 40 0 0 ${w?1:0} 50 90A${rx} 40 0 0 ${s} 50 10Z" fill="#f2f2f2"/><circle cx="50" cy="50" r="40" fill="none" stroke="#566067"/></svg>`}
 function render(){
  const c=W.current,h=W.hourly,dd=W.daily,sl=a=>a.slice(1),d={};for(const k in dd)d[k]=sl(dd[k]);
- const i=h.time.findIndex(t=>t>=c.time.slice(0,13)),[ic,tx]=WC(c.weather_code),now=new Date(c.time).getTime();
+ const i=h.time.findIndex(t=>t>=c.time.slice(0,13)),[ic0,tx0]=WC(c.weather_code),ic=c.is_day?ic0:(c.weather_code==0?'🌙':c.weather_code<=2?'☁️':ic0),tx=!c.is_day&&c.weather_code==0?'Clear':tx0,now=new Date(c.time).getTime();
  const hi=d.temperature_2m_max[0],lo=d.temperature_2m_min[0],pop=h.precipitation_probability[i];
  const night=!c.is_day,bg=c.weather_code>=95?'#0d3b44,#1d6b73':c.weather_code>=51?'#1f3a5a,#4d6f94':c.weather_code>=3?'#4a5560,#8793a0':night?'#101a38,#2c3f7a':'#1c64c4,#5eb0f2';
  const fut=h.time.slice(i,i+12).map((_,k)=>h.temperature_2m[i+k]),low12=Math.min(...fut),yl=dd.temperature_2m_min[0],diff=r0(low12-yl);
@@ -123,6 +124,7 @@ function render(){
  if(window.SunCalc){const dt=new Date(),mt=SunCalc.getMoonTimes(dt,loc.lat,loc.lon),mi=SunCalc.getMoonIllumination(dt);mp=mi.phase;
   mname=mp<.03||mp>.97?'New Moon':mp<.22?'Waxing Crescent':mp<.28?'First Quarter':mp<.47?'Waxing Gibbous':mp<.53?'Full Moon':mp<.72?'Waning Gibbous':mp<.78?'Last Quarter':'Waning Crescent';
   mArc=arcCard('Moonrise · Moonset','moon',mt.rise,mt.set,dt,tz(mt.rise),tz(mt.set),'')}
+ $('logo').textContent=ic;$('logo').title=tx;
  $('mini').innerHTML=`<span>${loc.name.split(',')[0]}</span><span>${ic}</span><b>${r0(c.temperature_2m)}°</b>`;
  const al=AL.map(a=>`<div class="alert">⚠ <b>${a.event}</b><small>${a.expires?'Until '+new Date(a.expires).toLocaleString([], {weekday:'short',hour:'numeric',minute:'2-digit'}):''}</small></div>`).join('');
  $('main').innerHTML=`<h1>${loc.name} Weather</h1><div class="meta">As of ${tf(c.time)} · <a href="#" onclick="gps();return false">Improve location precision</a></div>${al}
