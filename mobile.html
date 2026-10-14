@@ -12,7 +12,7 @@
 :root{--bg:#23282b;--card:#30363a;--card2:#3a4146;--tx:#f2f4f5;--mut:#aab2b7;--hi:#ff7a45;--lo:#3da5ff;--ok:#3ddc65;--warn:#ffc933;--bad:#ff5a4f;--acc:#f5c542}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font:15px -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif}
-#app{display:flex;flex-direction:column;height:100vh;height:100dvh;padding-top:env(safe-area-inset-top,0px)}
+#app{position:fixed;top:0;left:0;right:0;display:flex;flex-direction:column;height:100vh;height:100dvh;padding-top:env(safe-area-inset-top,0px)}
 header{padding:10px 16px 0;flex:none}
 .loc{display:flex;align-items:center;gap:8px;font-size:15px}
 .loc b{flex:1;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -220,4 +220,9 @@ let st;$('q').oninput=e=>{clearTimeout(st);st=setTimeout(async()=>{const v=e.tar
  $('res').innerHTML='';(j.results||[]).forEach(r=>{const el=document.createElement('div');el.className='r';el.textContent=[r.name,r.admin1,r.country].filter(Boolean).join(', ');
   el.onclick=()=>{dlg.close();setLoc({lat:r.latitude,lon:r.longitude,name:[r.name,r.admin1].filter(Boolean).join(', ')})};$('res').appendChild(el)})},300)};
 load();setInterval(load,600000);
+
+// iOS Home Screen apps can report a viewport shorter than the screen; size the app to the full screen
+function fitApp(){const a=$('app');if(!(navigator.standalone||matchMedia('(display-mode:standalone)').matches)){a.style.height='';return}
+ const land=innerWidth>innerHeight,sh=land?Math.min(screen.width,screen.height):Math.max(screen.width,screen.height);a.style.height=Math.max(innerHeight,sh)+'px'}
+fitApp();addEventListener('resize',fitApp);addEventListener('orientationchange',()=>setTimeout(fitApp,200));
 </script></body></html>
