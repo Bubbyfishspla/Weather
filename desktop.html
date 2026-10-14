@@ -82,8 +82,20 @@ async function load(){
   render();
  }catch(e){$('main').innerHTML='<div class="err">Couldn’t load weather. Check your connection and reload.</div>'}
 }
-function arcCard(title,a,b,now,color,icon,l1,l2){const p=a&&b&&now?Math.max(0,Math.min(1,(now-a)/(b-a))):null,t=Math.PI*(1-(p??0)),x=100+85*Math.cos(t),y=95-85*Math.sin(t);
- return `<div class="c"><h4>${title}</h4><div class="b"><svg viewBox="0 0 200 105"><path d="M15 95A85 85 0 0 1 185 95" fill="none" stroke="#4a5258" stroke-width="2"/>${p!=null?`<circle cx="${x}" cy="${y}" r="9" fill="${color}"/>`:''}<line x1="0" y1="95" x2="200" y2="95" stroke="#566067"/><text x="14" y="104" font-size="10" style="fill:var(--tx)" text-anchor="start">${l1}</text><text x="186" y="104" font-size="10" style="fill:var(--tx)" text-anchor="end">${l2}</text></svg></div></div>`}
+function arcSvg(id,a,b,now,k){
+ const S=k=='sun',c=S?'#f5c542':'#a98bf0';let aa=a?+a:0,bb=b?+b:0;if(a&&b&&bb<aa)bb+=864e5;
+ const has=a&&b,p=has?Math.max(0,Math.min(1,(+now-aa)/(bb-aa))):null,t=Math.PI*(1-(p||0)),x=100+85*Math.cos(t),y=95-85*Math.sin(t);
+ const st=[[30,40],[55,22],[78,58],[120,30],[150,52],[40,72],[100,64],[165,30],[135,74],[72,36]].map(q=>`<circle cx="${q[0]}" cy="${q[1]}" r="1" fill="#fff" opacity=".55"/>`).join('');
+ return `<svg viewBox="0 0 200 108" class="arc"><defs><linearGradient id="g${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${S?c:'#4a4470'}" stop-opacity="${S?.24:.7}"/><stop offset="1" stop-color="${S?c:'#2b2a45'}" stop-opacity="${S?.03:.15}"/></linearGradient>`+
+ (S?`<radialGradient id="s${id}"><stop offset=".3" stop-color="#fff"/><stop offset=".5" stop-color="#ffe27a"/><stop offset="1" stop-color="#f5c542" stop-opacity="0"/></radialGradient>`:`<mask id="m${id}"><rect width="200" height="108" fill="#fff"/><circle cx="${x+3.5}" cy="${y-2.5}" r="6" fill="#000"/></mask>`)+
+ `</defs><path d="M15 95A85 85 0 0 1 185 95Z" fill="url(#g${id})"/>${S?'':st}`+
+ (has?`<path d="M${x} ${y}A85 85 0 0 1 185 95" fill="none" stroke="${c}" stroke-opacity=".6" stroke-width="2" stroke-dasharray="4 4"/>${p>0?`<path d="M15 95A85 85 0 0 1 ${x} ${y}" fill="none" stroke="${c}" stroke-width="3" stroke-linecap="round"/>`:''}`:'')+
+ `<line x1="15" y1="95" x2="185" y2="95" stroke="${c}" stroke-opacity=".4"/><circle cx="15" cy="95" r="3" fill="${c}"/><circle cx="185" cy="95" r="3" fill="${c}" opacity=".7"/>`+
+ (!has?'':S?`<circle cx="${x}" cy="${y}" r="13" fill="url(#s${id})"/><circle cx="${x}" cy="${y}" r="5.5" fill="#fff" stroke="#f5c542" stroke-width="2.5"/>`:`<circle cx="${x}" cy="${y}" r="7" fill="#e8e0ff" mask="url(#m${id})"/>`)+`</svg>`}
+function dayInfo(a,b,n){const f=m=>Math.floor(m/36e5)+'h '+Math.round(m%36e5/6e4)+'m',s=b-n;
+ return `<div style="text-align:center;font-size:12px;color:#aab2b7;margin-top:6px">Day: ${f(b-a)}</div><div style="text-align:center;font-size:12px;font-weight:700;color:#ff9a5a">${s>0&&n>=a?f(s)+' left':n<a?'Before sunrise':'Sun has set'}</div>`}
+function arcCard(title,k,a,b,now,l1,l2,extra){const S=k=='sun',c1=S?'#f5c542':'#a98bf0',c2=S?'#ff9a5a':'#a98bf0';
+ return `<div class="c"><h4>${title}</h4><div class="b" style="gap:6px">${arcSvg(k,a,b,now,k)}<div style="display:flex;justify-content:space-between;width:100%;font-size:12px;font-weight:700"><span style="color:${c1}">${l1}</span><span style="color:${c2}">${l2}</span></div>${extra}</div></div>`}
 function gauge(title,v,color,big,sub){return `<div class="c"${title=='Air Quality'?' id="aq"':''}><h4>${title}</h4><div class="b"><svg viewBox="0 0 120 70"><path d="M15 62A45 45 0 0 1 105 62" fill="none" stroke="#4a5258" stroke-width="9" stroke-linecap="round"/><path d="M15 62A45 45 0 0 1 105 62" fill="none" stroke="${color}" stroke-width="9" stroke-linecap="round" pathLength="100" stroke-dasharray="${Math.max(1,v*100)} 100"/><text x="60" y="50" text-anchor="middle" font-size="20" font-weight="600">${big}</text><text x="60" y="66" text-anchor="middle" font-size="9" style="fill:var(--mut)">${sub}</text></svg></div></div>`}
 function moonSvg(p){const k=Math.cos(2*Math.PI*p),rx=40*Math.abs(k),w=p<.5,s=w?(k>0?0:1):(k>0?1:0);
  return `<svg viewBox="0 0 100 100" style="max-height:90px"><circle cx="50" cy="50" r="40" fill="#1b1d22"/><path d="M50 10A40 40 0 0 ${w?1:0} 50 90A${rx} 40 0 0 ${s} 50 10Z" fill="#f2f2f2"/><circle cx="50" cy="50" r="40" fill="none" stroke="#566067"/></svg>`}
@@ -110,7 +122,7 @@ function render(){
  let mr='',ms='',mp=.5,mname='',mArc='';
  if(window.SunCalc){const dt=new Date(),mt=SunCalc.getMoonTimes(dt,loc.lat,loc.lon),mi=SunCalc.getMoonIllumination(dt);mp=mi.phase;
   mname=mp<.03||mp>.97?'New Moon':mp<.22?'Waxing Crescent':mp<.28?'First Quarter':mp<.47?'Waxing Gibbous':mp<.53?'Full Moon':mp<.72?'Waning Gibbous':mp<.78?'Last Quarter':'Waning Crescent';
-  mArc=arcCard('Moonrise · Moonset',mt.rise,mt.set,dt,'#b8b4f0','',tz(mt.rise),tz(mt.set))}
+  mArc=arcCard('Moonrise · Moonset','moon',mt.rise,mt.set,dt,tz(mt.rise),tz(mt.set),'')}
  $('mini').innerHTML=`<span>${loc.name.split(',')[0]}</span><span>${ic}</span><b>${r0(c.temperature_2m)}°</b>`;
  const al=AL.map(a=>`<div class="alert">⚠ <b>${a.event}</b><small>${a.expires?'Until '+new Date(a.expires).toLocaleString([], {weekday:'short',hour:'numeric',minute:'2-digit'}):''}</small></div>`).join('');
  $('main').innerHTML=`<h1>${loc.name} Weather</h1><div class="meta">As of ${tf(c.time)} · <a href="#" onclick="gps();return false">Improve location precision</a></div>${al}
@@ -125,9 +137,9 @@ function render(){
  <div class="c"><h4>Wind</h4><div class="b"><svg viewBox="0 0 100 100" style="max-height:84px"><circle cx="50" cy="50" r="38" fill="none" stroke="#566067" stroke-width="3"/><text x="50" y="20" font-size="9" text-anchor="middle" style="fill:var(--mut)">N</text><g transform="rotate(${c.wind_direction_10m+180} 50 50)"><path d="M50 28L58 56H53V72H47V56H42Z" fill="#f5c542"/></g></svg><div style="font-size:12px">${r0(c.wind_speed_10m)} mph ${dir(c.wind_direction_10m)}</div></div></div>
  ${gauge('Humidity',hum/100,'#3b82f6',hum+'%',hl)}${gauge('UV Index',Math.min(1,uv/11),'#3ddc65',uv<1?'<1':r0(uv),uvl)}${gauge('Air Quality',aq==null?0:Math.min(1,aq/200),aq==null||aq<=50?'#3ddc65':aq<=100?'#ffc933':'#ff7a45',aq??'--',aql)}
  <div class="c"><h4>Dew Point</h4><div class="b"><div class="big">${r0(dew)}°</div><div style="width:100%;height:22px;border-radius:4px;background:linear-gradient(90deg,#fde6a8,#e07b00);margin-top:8px;position:relative"><i style="position:absolute;top:-3px;bottom:-3px;width:3px;background:#000;left:${Math.max(0,Math.min(100,(dew-30)/50*100))}%"></i></div><div style="display:flex;justify-content:space-between;width:100%;font-size:10px;color:var(--mut)"><span>30</span><span>80</span></div></div></div>
- ${gauge('Pressure',Math.max(0,Math.min(1,(pr-28.5)/2)),'#6aa7f5',(pr<pr3?'↓ ':'↑ ')+pr.toFixed(2),'in')}
+ ${gauge('Pressure',Math.max(0,Math.min(1,(pr-28.5)/2)),'#6aa7f5',pr.toFixed(2),(pr<pr3-.005?'↓ falling':pr>pr3+.005?'↑ rising':'steady')+' · inHg')}
  <div class="c"><h4>Visibility</h4><div class="b"><div class="big">${r0(vis)} mi</div><div style="display:flex;gap:4px;align-items:flex-end;height:36px;margin-top:8px">${Array.from({length:10},(_,k)=>`<i style="width:14px;height:${10+k*3}px;border-radius:2px;background:${k<Math.min(10,vis)?'#1ba4e8':'#3a4146'}"></i>`).join('')}</div></div></div>
- ${arcCard('Sunrise · Sunset',sr,ss,new Date(c.time),'#f5b82e','',tf(d.sunrise[0]),tf(d.sunset[0]))}${mArc}
+ ${arcCard('Sunrise · Sunset','sun',sr,ss,new Date(c.time),tf(d.sunrise[0]),tf(d.sunset[0]),dayInfo(sr,ss,new Date(c.time)))}${mArc}
  <div class="c"><h4>Moon Phase</h4><div class="b">${moonSvg(mp)}<div style="font-size:12px;font-weight:600;margin-top:6px">${mname}</div></div></div></div>
  <h2 id="radar">Radar</h2><div id="map"></div><div class="rc"><button id="play">▶</button><input type="range" id="rng" min="0" max="0" value="0"><span id="rt"></span></div>
  <div class="foot">Weather: <a href="https://open-meteo.com">Open-Meteo</a> · Alerts: NWS (US) · Radar: <a href="https://github.com/JoshuaKimsey/LibreWXR">LibreWXR</a> · Map © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors<br><a href="index.html?view=mobile">Switch to phone version</a></div>`;
