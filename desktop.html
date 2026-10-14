@@ -144,7 +144,7 @@ function render(){
  ${arcCard('Sunrise · Sunset','sun',sr,ss,new Date(c.time),tf(d.sunrise[0]),tf(d.sunset[0]),dayInfo(sr,ss,new Date(c.time)))}${mArc}
  <div class="c"><h4>Moon Phase</h4><div class="b">${moonSvg(mp)}<div style="font-size:12px;font-weight:600;margin-top:6px">${mname}</div></div></div></div>
  <h2 id="radar">Radar</h2><div id="map"></div><div class="rc"><button id="play">▶</button><input type="range" id="rng" min="0" max="0" value="0"><span id="rt"></span></div>
- <div class="foot">Weather: <a href="https://open-meteo.com">Open-Meteo</a> · Alerts: NWS (US) · Radar: <a href="https://github.com/JoshuaKimsey/LibreWXR">LibreWXR</a> · Map © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors<br><a href="index.html?view=mobile">Switch to phone version</a></div>`;
+ <div class="foot">Weather: <a href="https://open-meteo.com">Open-Meteo</a> · Alerts: NWS (US) · Radar: <a href="https://github.com/JoshuaKimsey/LibreWXR">LibreWXR</a> · Map © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors<br><a href="index.html?view=mobile">Switch to mobile version</a></div>`;
  map=null;initRadar();
 }
 async function initRadar(){
