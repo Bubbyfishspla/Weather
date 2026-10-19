@@ -87,7 +87,7 @@ dialog div.r{padding:11px 4px;border-bottom:1px solid var(--card2)}
 <script>
 const $=id=>document.getElementById(id),LW='https://api.librewxr.net';
 let loc=JSON.parse(localStorage.getItem('loc')||'null')||{lat:30.5083,lon:-97.6789,name:'Round Rock, Texas'};
-let W,AQ,AL=[],map,layers=[],frames=[],fi=0,timer,radarReady=false;
+let KP=null,W,AQ,AL=[],map,layers=[],frames=[],fi=0,timer,radarReady=false;
 const D=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
 const dir=d=>D[Math.round(d/22.5)%16],mi=m=>m/1609.34;
 const WC=c=>c==0?['☀️','Clear sky']:c<=2?['⛅','Partly cloudy']:c==3?['☁️','Overcast']:c<=48?['🌫️','Fog']:c<=57?['🌦️','Drizzle']:c<=67?['🌧️','Rain']:c<=77?['🌨️','Snow']:c<=82?['🌧️','Showers']:c<=86?['🌨️','Snow showers']:['⛈️','Thunderstorm'];
@@ -103,9 +103,11 @@ async function load(){
  '&daily=sunrise,sunset,uv_index_max,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,weather_code,wind_speed_10m_max'+
  '&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=auto&forecast_days=7';
  try{
-  const [a,b,c]=await Promise.allSettled([fetch(f).then(r=>r.json()),
+  const [a,b,c,k]=await Promise.allSettled([fetch(f).then(r=>r.json()),
    fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude='+loc.lat+'&longitude='+loc.lon+'&current=us_aqi,pm2_5&timezone=auto').then(r=>r.json()),
-   fetch('https://api.weather.gov/alerts/active?point='+loc.lat.toFixed(4)+','+loc.lon.toFixed(4)).then(r=>r.json())]);
+   fetch('https://api.weather.gov/alerts/active?point='+loc.lat.toFixed(4)+','+loc.lon.toFixed(4)).then(r=>r.json()),
+   fetch('https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json').then(r=>r.json())]);
+  KP=null;if(k.status=='fulfilled'&&Array.isArray(k.value)&&k.value.length>1){const v=parseFloat(k.value[k.value.length-1][1]);if(!isNaN(v))KP=v}
   if(a.status!='fulfilled'||!a.value.current)throw 0;
   W=a.value;AQ=b.status=='fulfilled'?b.value.current:null;
   AL=c.status=='fulfilled'&&c.value.features?c.value.features.map(x=>x.properties):[];
@@ -167,7 +169,8 @@ function render(){
  $('p1').innerHTML=`<div class="status ${st}">${msg}<small>${why.join(' · ')||'Conditions within typical limits'}</small></div>
  <div class="card"><h3>Wind</h3><div class="compass">${windArrow(c.wind_direction_10m,ws)}<div style="margin-left:16px"><div style="font-size:32px;font-weight:700">${r0(ws)} mph</div><div class="sub">from ${dir(c.wind_direction_10m)} (${r0(c.wind_direction_10m)}°)</div><div class="sub">Gusts ${r0(g)} mph</div></div></div></div>
  <div class="grid" style="margin-top:8px"><div class="row"><span>Wind 33 ft</span><b>${r0(ws)} mph</b></div><div class="row"><span>Wind 260 ft</span><b>${r0(h.wind_speed_80m[i])} mph</b></div>
- <div class="row"><span>Wind 400 ft</span><b>${r0(w120)} mph</b></div><div class="row"><span>👁️ Visibility</span><b>${vis.toFixed(1)} mi</b></div></div>
+ <div class="row"><span>Wind 400 ft</span><b>${r0(w120)} mph</b></div><div class="row"><span>👁️ Visibility</span><b>${vis.toFixed(1)} mi</b></div>
+ <div class="row"><span>☁️ Cloud Cover</span><b>${c.cloud_cover}%</b></div><div class="row"><span>🛰️ GPS (Kp ${KP==null?'--':KP.toFixed(1)})</span><b style="color:${KP==null?'var(--mut)':KP<4?'var(--ok)':KP<5?'var(--warn)':'var(--bad)'}">${KP==null?'--':KP<4?'Good':KP<5?'Fair':KP<7?'Degraded':'Poor'}</b></div></div>
  ${sunCard('b','Sunrise / Sunset',d,c.time)}
  <div class="foot">Altitude winds are model estimates (10/80/120 m). Always check local rules, TFRs and your aircraft limits.</div>`;
  // forecast
