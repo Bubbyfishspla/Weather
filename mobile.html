@@ -84,10 +84,11 @@ dialog div.r{padding:11px 4px;border-bottom:1px solid var(--card2)}
 <dialog id="dlg"><input id="q" placeholder="Search city…" autocomplete="off"><div id="res"></div><button class="ib" onclick="dlg.close()">Close</button></dialog>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/satellite.js@4.1.4/dist/satellite.min.js"></script>
 <script>
 const $=id=>document.getElementById(id),LW='https://api.librewxr.net';
 let loc=JSON.parse(localStorage.getItem('loc')||'null')||{lat:30.5083,lon:-97.6789,name:'Round Rock, Texas'};
-let KP=null,W,AQ,AL=[],map,layers=[],frames=[],fi=0,timer,radarReady=false;
+let SATS=null,KP=null,W,AQ,AL=[],map,layers=[],frames=[],fi=0,timer,radarReady=false;
 const D=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
 const dir=d=>D[Math.round(d/22.5)%16],mi=m=>m/1609.34;
 const WC=c=>c==0?['☀️','Clear sky']:c<=2?['⛅','Partly cloudy']:c==3?['☁️','Overcast']:c<=48?['🌫️','Fog']:c<=57?['🌦️','Drizzle']:c<=67?['🌧️','Rain']:c<=77?['🌨️','Snow']:c<=82?['🌧️','Showers']:c<=86?['🌨️','Snow showers']:['⛈️','Thunderstorm'];
@@ -107,6 +108,7 @@ async function load(){
    fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude='+loc.lat+'&longitude='+loc.lon+'&current=us_aqi,pm2_5&timezone=auto').then(r=>r.json()),
    fetch('https://api.weather.gov/alerts/active?point='+loc.lat.toFixed(4)+','+loc.lon.toFixed(4)).then(r=>r.json()),
    fetch('https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json').then(r=>r.json())]);
+  try{SATS=countSats(loc.lat,loc.lon,await getTLE())}catch(e){SATS=null}
   KP=null;if(k.status=='fulfilled'&&Array.isArray(k.value)&&k.value.length>1){const v=parseFloat(k.value[k.value.length-1][1]);if(!isNaN(v))KP=v}
   if(a.status!='fulfilled'||!a.value.current)throw 0;
   W=a.value;AQ=b.status=='fulfilled'?b.value.current:null;
@@ -114,6 +116,13 @@ async function load(){
   render();$('upd').innerHTML='Updated '+new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})+' · Weather: <a href="https://open-meteo.com">Open-Meteo</a> · Alerts: NWS (US)';
  }catch(e){$('p0').innerHTML='<div class="err">Couldn’t load weather. Check your connection and tap ⟳.</div>'}
 }
+
+async function getTLE(){const KEY='gpsTle';let c=null;try{c=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){}
+ if(c&&Date.now()-c.t<6*36e5)return c.d;
+ try{const t=await fetch('https://celestrak.org/NORAD/elements/gp.php?GROUP=gps-ops&FORMAT=tle').then(r=>{if(!r.ok)throw 0;return r.text()});if(t.indexOf('1 ')<0)throw 0;try{localStorage.setItem(KEY,JSON.stringify({t:Date.now(),d:t}))}catch(e){}return t}catch(e){return c?c.d:null}}
+function countSats(lat,lon,tle){if(!tle||!window.satellite)return null;const S=window.satellite,L=tle.split(/\r?\n/).map(s=>s.trim()).filter(Boolean),now=new Date(),g=S.gstime(now),obs={latitude:lat*Math.PI/180,longitude:lon*Math.PI/180,height:0.1};let n=0,tot=0;
+ for(let i=0;i<L.length-1;i++){if(L[i].startsWith('1 ')&&L[i+1].startsWith('2 ')){try{const rec=S.twoline2satrec(L[i],L[i+1]),pv=S.propagate(rec,now);if(!pv.position)continue;tot++;const el=S.ecfToLookAngles(obs,S.eciToEcf(pv.position,g)).elevation*180/Math.PI;if(el>=10)n++}catch(e){}i++}}
+ return tot?n:null}
 function nowIdx(){const n=W.current.time;let i=W.hourly.time.findIndex(t=>t>=n.slice(0,13));return i<0?0:i}
 function arcSvg(id,a,b,now,k){
  const S=k=='sun',c=S?'#f5c542':'#a98bf0';let aa=a?+a:0,bb=b?+b:0;if(a&&b&&bb<aa)bb+=864e5;
@@ -170,9 +179,9 @@ function render(){
  <div class="card"><h3>Wind</h3><div class="compass">${windArrow(c.wind_direction_10m,ws)}<div style="margin-left:16px"><div style="font-size:32px;font-weight:700">${r0(ws)} mph</div><div class="sub">from ${dir(c.wind_direction_10m)} (${r0(c.wind_direction_10m)}°)</div><div class="sub">Gusts ${r0(g)} mph</div></div></div></div>
  <div class="grid" style="margin-top:8px"><div class="row"><span>Wind 33 ft</span><b>${r0(ws)} mph</b></div><div class="row"><span>Wind 260 ft</span><b>${r0(h.wind_speed_80m[i])} mph</b></div>
  <div class="row"><span>Wind 400 ft</span><b>${r0(w120)} mph</b></div><div class="row"><span>👁️ Visibility</span><b>${vis.toFixed(1)} mi</b></div>
- <div class="row"><span>☁️ Cloud Cover</span><b>${c.cloud_cover}%</b></div><div class="row"><span>🛰️ GPS (Kp ${KP==null?'--':KP.toFixed(1)})</span><b style="color:${KP==null?'var(--mut)':KP<4?'var(--ok)':KP<5?'var(--warn)':'var(--bad)'}">${KP==null?'--':KP<4?'Good':KP<5?'Fair':KP<7?'Degraded':'Poor'}</b></div></div>
+ <div class="row"><span>☁️ Cloud Cover</span><b>${c.cloud_cover}%</b></div><div class="row"><span>🛰️ GPS Sats</span><b style="color:${SATS==null?'var(--mut)':SATS>=8?'var(--ok)':SATS>=6?'var(--warn)':'var(--bad)'}">${SATS==null?'--':SATS+' in view'}</b></div><div class="row"><span>🧲 Kp Index (${KP==null?'--':KP.toFixed(1)})</span><b style="color:${KP==null?'var(--mut)':KP<4?'var(--ok)':KP<5?'var(--warn)':'var(--bad)'}">${KP==null?'--':KP<4?'Good':KP<5?'Fair':KP<7?'Degraded':'Poor'}</b></div></div>
  ${sunCard('b','Sunrise / Sunset',d,c.time)}
- <div class="foot">Altitude winds are model estimates (10/80/120 m). Always check local rules, TFRs and your aircraft limits.</div>`;
+ <div class="foot">Altitude winds are model estimates (10/80/120 m). GPS Sats is a prediction of satellites above 10° at your location, not what your drone has locked. Always check local rules, TFRs and your aircraft limits.</div>`;
  // forecast
  let hs='<div class="hours"><div class="hr h"><span>Hour</span><span>Cloud</span><span>Wind</span><span>Rain</span></div>';
  for(let k=i;k<i+24&&k<h.time.length;k++){const cc=h.cloud_cover[k],p=h.precipitation_probability[k];
