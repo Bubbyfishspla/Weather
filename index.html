@@ -1,17 +1,459 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Weather</title><style>body{background:#23282b;color:#f2f4f5;font:16px -apple-system,system-ui,sans-serif;text-align:center;padding:40px}a{color:#6db3ff}</style></head><body>
-<p>Loading weather…</p><p><a href="mobile.html">Phone version</a> · <a href="desktop.html">Desktop version</a></p>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Drone WX">
+<meta name="theme-color" content="#f3f4f2" media="(prefers-color-scheme:light)">
+<meta name="theme-color" content="#14171a" media="(prefers-color-scheme:dark)">
+<title>Weather</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+/* Dialog tokens: the location dialog is a solid sheet that follows the system light/dark setting. */
+:root{color-scheme:light dark;--stretch:0px;--r:12px;
+ --bg:#f3f4f2;--card:#fff;--ln:#dcdfdb;--track:#e2e5e1;--tx:#15191c;--mut:#59636a;--acc:#b07a00;
+ --sky1:#16233f;--sky2:#24385f}
+@media(prefers-color-scheme:dark){:root{--bg:#14171a;--card:#1e2226;--ln:#2e3439;--track:#343b41;--tx:#f2f4f5;--mut:#a3adb3;--acc:#f5c542}}
+/* Sky tokens (every page): the page is the colour of the current sky, so text is white and panels are dark tints of it. */
+header,nav,main,footer{--card:rgba(6,12,26,.32);--nav:rgba(6,12,26,.62);--ln:rgba(255,255,255,.18);--track:rgba(255,255,255,.2);--tx:#fff;--mut:rgba(255,255,255,.86);--acc:#f5c542;--ok:#3ddc65;--warn:#ffc933;--bad:#ff5a4f;--lo:#6cbcff;color:var(--tx)}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--sky1);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;font-variant-numeric:tabular-nums}
+body::before{content:"";position:fixed;inset:0;z-index:-1;background:linear-gradient(var(--sky1),var(--sky2))}
+button{font:inherit;color:inherit;border:0;background:none}
+button,summary,a{cursor:pointer}
+button:disabled{cursor:not-allowed;opacity:.5}
+button:active{transform:scale(.97)}
+a{color:inherit;text-underline-offset:2px}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+small,.mut{color:var(--mut);font-size:13px}
+svg{display:block}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+
+header{display:flex;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 10px) 16px 6px}
+#locBtn{display:flex;gap:6px;align-items:center;min-width:0;height:44px;background:var(--card);border-radius:22px;padding:0 10px 0 16px;font-weight:600}
+#locBtn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sp{flex:1}
+.ib{flex:none;width:44px;height:44px;border-radius:50%;background:var(--card);display:grid;place-items:center}
+#locBtn:hover,.ib:hover{background:var(--track)}
+.ic{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+/* The nav floats over scrolling content, so it is the one blurred, shadowed surface. */
+nav{position:fixed;z-index:21;top:10px;left:50%;transform:translateX(-50%);display:flex;gap:2px;padding:4px;background:var(--nav);border-radius:24px;box-shadow:0 4px 16px rgba(0,0,0,.18)}
+nav{-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+nav button{height:36px;padding:0 18px;border-radius:18px;font-weight:500}
+nav button:hover{background:var(--track)}
+nav button.on{background:var(--acc);color:#1a1a1a;font-weight:600}
+
+main,footer{max-width:980px;margin:0 auto;padding:0 16px}
+.page{display:none}.page.on{display:block}
+h2{font-size:15px;font-weight:650;margin:30px 2px 10px}
+.p{background:var(--card);border-radius:var(--r);padding:6px 16px}
+.msg{padding:70px 20px;text-align:center}
+.btn{background:#fff;color:#10151c;border-radius:6px;padding:11px 18px;font-weight:600;margin-top:14px}.btn:hover{background:#e6e9ee}
+
+/* Today: the temperature and the sun's place in the sky are the focal point, set straight on the sky with no panel. */
+.hero{display:grid;grid-template-columns:1fr minmax(260px,400px);gap:24px;align-items:end;padding:22px 2px 4px}
+.t{font-size:clamp(96px,17vw,168px);font-weight:700;letter-spacing:-.05em;line-height:.86;margin-left:-.04em}
+.cond{display:flex;align-items:center;gap:10px;font-size:22px;font-weight:600;margin-top:18px}
+.hero .s{margin-top:4px}
+.sunl{display:flex;justify-content:space-between;font-size:13px;margin-top:6px}
+.note{text-align:center;font-weight:600;margin:2px 0 0}
+.lead{font-size:18px;line-height:1.45;max-width:38em;margin:22px 2px 0}
+details.alert{background:#6e2622;color:#fff;border-radius:var(--r);padding:12px 16px;margin-top:10px}
+details.alert summary{font-weight:600}details.alert summary small{color:#f6d9d6;font-weight:400;margin-left:8px}
+details.alert p{margin:8px 0 0;white-space:pre-line;font-size:14px}
+
+.strip{overflow-x:auto;background:var(--card);border-radius:var(--r)}
+.cols,.bars,.lab{display:flex}
+.cols div,.bars div,.lab div{flex:none;width:64px;text-align:center}
+.cols div{font-size:13px;padding-top:12px;color:var(--mut)}.cols .now{color:var(--tx);font-weight:700}
+.cols svg{margin:6px auto 2px}.cols em{font-style:normal;font-size:12px;display:block;height:16px;color:var(--tx)}
+.bars{height:52px;border-top:1px solid var(--ln);padding-top:8px}
+.bars div{display:flex;align-items:flex-end;justify-content:center}
+.bars span{width:8px;height:100%;border-radius:4px;background:var(--track);position:relative}.bars span i{position:absolute;bottom:0;left:0;right:0;border-radius:4px;background:var(--lo)}
+.lab div{font-size:11px;color:var(--mut);padding:3px 0 8px;min-height:24px}
+
+.list{overflow:hidden}
+.list>*{border-top:1px solid var(--ln);margin-top:-1px}
+.dr{display:grid;grid-template-columns:76px 60px 170px 40px 1fr 40px;align-items:center;gap:10px;padding:12px 0}
+.dr .d{font-weight:600}.dr .pp,.dr .tx{display:flex;align-items:center;gap:6px}.dr .l{text-align:right;color:var(--mut)}
+.rg{position:relative;height:6px;border-radius:3px;background:var(--track)}.rg i{position:absolute;top:0;bottom:0;border-radius:3px}
+.cols2{columns:2;column-gap:40px}
+.kv{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:12px 0;break-inside:avoid}
+.kv>span:first-child{color:var(--mut)}.kv .v{text-align:right}.kv b{font-weight:600;font-size:16px}
+
+.hr{display:grid;grid-template-columns:52px 76px 1fr 1.2fr 1.2fr 12px;gap:10px;align-items:center;padding:10px 0;font-size:14px}
+.hr.h{color:var(--mut);font-size:13px;padding:8px 0}
+.hr small{display:block}.hr .tp{display:flex;align-items:center;gap:6px;font-weight:600}
+.bar{height:5px;border-radius:3px;background:var(--track);overflow:hidden;margin-top:4px}.bar i{display:block;height:100%;background:var(--tx)}.bar.rn i{background:var(--lo)}
+.dot{width:10px;height:10px;border-radius:50%}
+i.s0{background:var(--ok)}i.s1{background:var(--warn)}i.s2{background:var(--bad)}
+
+.kv .dot{display:inline-block;margin-right:8px}
+.kv a{font-weight:600}
+/* Preflight checklist: native checkboxes, one tappable row each. */
+.chk h3{font-size:13px;font-weight:600;color:var(--mut);margin:0;padding:14px 0 4px;border:0}
+.chk label{display:flex;gap:12px;align-items:center;min-height:44px;padding:8px 0;cursor:pointer}
+.chk input{flex:none;width:20px;height:20px;accent-color:var(--acc);cursor:pointer}
+.chk label:has(:checked){color:var(--mut)}
+.reset{border:1px solid var(--ln);border-radius:6px;min-height:44px;padding:0 16px;font-weight:600;margin:12px 0 0}.reset:hover{background:var(--track)}
+.leaflet-container{color:#15191c}
+/* Drone: one status block. The status colour is the only large colour block on the page. */
+.status{border-radius:var(--r);padding:22px 20px;color:#fff;margin-top:12px}
+.status b{display:block;font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.status span{display:block;margin-top:6px}
+.status.s0{background:#1f5a31}.status.s1{background:#6b5a14}.status.s2{background:#6e2622}
+.win{display:flex;gap:2px;padding-top:10px}.win div{flex:1;text-align:center;font-size:11px;color:var(--mut);min-width:0}
+.win i{display:block;height:26px;border-radius:3px;margin-bottom:4px}.win .n i{opacity:.35}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+.compass{display:flex;align-items:center;gap:20px;padding:10px 0 14px}
+.big{font-size:40px;font-weight:700;letter-spacing:-.03em;line-height:1}
+.ab{display:grid;grid-template-columns:52px 1fr 64px;gap:10px;align-items:center;padding:9px 0}
+.ab span{color:var(--mut)}.ab b{text-align:right;font-weight:600}.ab .bar{margin:0;height:6px}
+
+#map{height:62vh;min-height:320px;border-radius:var(--r);overflow:hidden;margin-top:12px}
+.rc{display:flex;gap:12px;align-items:center;margin-top:12px}
+.rc button{flex:none;display:grid;place-items:center;background:#fff;color:#10151c;border-radius:50%;width:44px;height:44px}.rc button:hover{background:#e6e9ee}
+.rc svg{width:20px;height:20px;fill:currentColor}
+.rc input{flex:1;accent-color:var(--acc)}.rc span{font-size:13px;min-width:120px;text-align:right}
+footer{padding-top:26px;padding-bottom:40px;font-size:13px;color:var(--mut)}
+footer p{margin:0 0 6px}
+.adj{background:var(--card);border-radius:6px;width:44px;height:44px;font-size:18px}
+.mob{display:none}
+
+dialog{background:var(--card);color:var(--tx);border:1px solid var(--ln);border-radius:var(--r);width:92%;max-width:420px;padding:14px;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+dialog input{width:100%;padding:12px;font:inherit;font-size:16px;border:1px solid var(--ln);background:var(--bg);color:var(--tx);border-radius:6px}
+dialog .r{display:block;width:100%;text-align:left;padding:13px 6px;border-bottom:1px solid var(--ln);border-radius:0}dialog .r:hover{background:var(--track)}
+dialog .act{display:flex;justify-content:space-between;margin-top:10px}dialog .act button{min-height:44px;padding:0 6px;font-weight:600;text-decoration:underline;text-underline-offset:2px}
+
+@media(max-width:760px){
+ nav{top:auto;left:0;right:0;transform:none;bottom:calc(0px - var(--stretch));border-radius:0;gap:0;padding:0;border-top:1px solid var(--ln);box-shadow:none}
+ nav button{flex:1;height:54px;padding:0;border-radius:0;font-size:13px;color:var(--mut)}
+ nav button.on{background:none;color:var(--tx);font-weight:700;box-shadow:inset 0 3px 0 var(--acc)}
+ footer{padding-bottom:110px}
+ .hero{grid-template-columns:1fr;gap:18px;padding-top:14px}
+ .lead{font-size:17px}
+ .dr{grid-template-columns:64px 54px 26px 34px 1fr 34px;gap:8px}.dr .tx span{display:none}
+ .cols2{columns:1}
+ .hr{grid-template-columns:42px 62px 1fr 1.3fr 1.2fr 10px;gap:8px}
+ main,footer{padding:0 12px}.p{padding:6px 12px}
+ .two{grid-template-columns:1fr}
+ .mob{display:block}
+}
+@media(max-width:760px) and (display-mode:standalone){nav{padding-bottom:calc(env(safe-area-inset-bottom,0px)*.5)}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}button:active{transform:none}}
+</style></head><body>
+<header>
+ <button id="locBtn" aria-label="Change location"><span id="locName">…</span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></svg></button>
+ <div class="sp"></div>
+ <button class="ib" id="bGps" aria-label="Use my location" title="Use my location"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.5"/><path d="M12 2v3.5M12 18.5V22M2 12h3.5M18.5 12H22"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg></button>
+ <button class="ib" id="bRef" aria-label="Refresh" title="Refresh"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4v4.5H15"/></svg></button>
+</header>
+<nav aria-label="Sections"><button data-t="today">Today</button><button data-t="hourly">Hourly</button><button data-t="drone">Drone</button><button data-t="radar">Map</button></nav>
+<main>
+ <h1 class="sr" id="h1">Weather</h1>
+ <section class="page" id="today"></section>
+ <section class="page" id="hourly"></section>
+ <section class="page" id="drone"><div id="dw"></div>
+  <h2>Preflight checklist</h2>
+  <form class="p chk" style="padding-bottom:14px">
+   <h3>Before you leave</h3>
+   <label><input type="checkbox">Remote pilot certificate and photo ID are with me</label>
+   <label><input type="checkbox">Aircraft is registered and the number is marked on it</label>
+   <label><input type="checkbox">Remote ID is broadcasting, or I am flying inside a FRIA</label>
+   <label><input type="checkbox">Airspace authorization is approved, if this is controlled airspace</label>
+   <label><input type="checkbox">TFRs and NOTAMs are checked for this place and time</label>
+   <h3>At the site</h3>
+   <label><input type="checkbox">No people or moving vehicles under the flight path, unless the aircraft is approved for it</label>
+   <label><input type="checkbox">Wires, trees, towers and other obstacles are noted</label>
+   <label><input type="checkbox">Takeoff, landing and emergency landing spots are picked</label>
+   <label><input type="checkbox">Everyone helping knows the plan, their role and the emergency procedure</label>
+   <h3>Aircraft</h3>
+   <label><input type="checkbox">Airframe, arms, landing gear and propellers have no cracks or looseness</label>
+   <label><input type="checkbox">Aircraft and controller batteries cover the planned flight with reserve</label>
+   <label><input type="checkbox">Camera and any payload are secure</label>
+   <label><input type="checkbox">Control link is connected and the controls respond</label>
+   <label><input type="checkbox">GPS lock and home point are set, and the compass is calibrated if prompted</label>
+   <label><input type="checkbox">Return-to-home altitude clears the tallest obstacle</label>
+   <label><input type="checkbox">Anti-collision light is on, for civil twilight or night</label>
+   <button class="reset" type="reset">Clear checklist</button>
+  </form>
+  <p class="mut" style="margin:12px 2px 0;max-width:70em">The checklist follows 14 CFR 107.49 and the preflight lists in FAA Advisory Circular 107-2A. It is a memory aid, not legal advice, and your aircraft manual comes first.</p></section>
+ <section class="page" id="radar"><div id="map"></div><p class="mut" id="ms" style="margin:8px 2px 0" aria-live="polite"></p>
+  <div class="rc"><button id="play" aria-label="Play radar loop"></button><input type="range" id="rng" min="0" max="0" value="0" aria-label="Radar frame"><span id="rt">Loading radar…</span></div></section>
+</main>
+<footer>
+ <p id="upd"></p>
+ <p>Weather from <a href="https://open-meteo.com">Open-Meteo</a>. Alerts from the US National Weather Service. Radar from <a href="https://github.com/JoshuaKimsey/LibreWXR">LibreWXR</a>. Sectional chart, TFRs, airports and airspace from the <a href="https://www.faa.gov/uas">FAA</a>. Street map © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>.</p>
+ <p class="mob">Menu position <button class="adj" onclick="adj(-10)" aria-label="Move menu up">−</button> <span id="sv">0</span> <button class="adj" onclick="adj(10)" aria-label="Move menu down">+</button></p>
+</footer>
+<dialog id="dlg" aria-label="Choose a location"><label class="sr" for="q">Search for a city</label><input id="q" placeholder="Search for a city" autocomplete="off"><div id="res"></div>
+ <div class="act"><button onclick="gps()">Use my location</button><button onclick="dlg.close()">Close</button></div></dialog>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/satellite.js@4.1.4/dist/satellite.min.js"></script>
 <script>
-(function(){
- var q=new URLSearchParams(location.search),v=q.get("view");
- if(v==="mobile"||v==="desktop"){try{localStorage.setItem("view",v)}catch(e){}}
- else{try{v=localStorage.getItem("view")}catch(e){}}
- if(v!=="mobile"&&v!=="desktop"){
-  var ua=navigator.userAgent,short=Math.min(screen.width,screen.height);
-  var phone=/iPhone|iPod|Android.+Mobile|Windows Phone/i.test(ua)||(matchMedia("(pointer:coarse)").matches&&short<700);
-  v=phone?"mobile":"desktop";
- }
- location.replace(v+".html");
-})();
+const $=id=>document.getElementById(id),LW='https://api.librewxr.net',r0=Math.round;
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function store(k,v){try{if(v===undefined)return JSON.parse(localStorage.getItem(k)||'null');localStorage.setItem(k,JSON.stringify(v))}catch(e){return null}}
+let loc=store('loc')||{lat:30.5083,lon:-97.6789,name:'Round Rock, Texas'};
+let W,AQ,AL=[],SATS=null,KP=null,I=0,T=1,map,mk,rl,frames=[],fi=0,timer;
+
+const D=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'],dir=d=>D[r0(d/22.5)%16];
+// WMO weather code -> [icon kind, label]
+function WC(c,day=1){
+ const [k,tx]=c==0?['clear','Sunny']:c<=2?['partly','Partly cloudy']:c==3?['cloud','Cloudy']:c<=48?['fog','Fog']:c<=57?['drizzle','Drizzle']:c<=67?['rain','Rain']:c<=77?['snow','Snow']:c<=82?['rain','Showers']:c<=86?['snow','Snow showers']:['storm','Thunderstorms'];
+ return [k,!day&&c==0?'Clear':tx]}
+// Weather icons are drawn here, not emoji, so they look the same on every phone and follow the page colours.
+const CLOUD='<path fill="currentColor" d="M7 18a4 4 0 0 1-.5-7.97A5.5 5.5 0 0 1 17.2 9.1 4.5 4.5 0 0 1 17 18Z"/>',
+ SUN='<g fill="var(--acc)" stroke="var(--acc)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4" stroke="none"/>'+[0,45,90,135,180,225,270,315].map(a=>`<path d="M12 2.2v2.4" transform="rotate(${a} 12 12)"/>`).join('')+'</g>',
+ MOON='<path fill="currentColor" d="M20 14.6A8.6 8.6 0 1 1 9.4 4 6.9 6.9 0 0 0 20 14.6Z"/>',
+ UP='<g transform="translate(0 -3)">'+CLOUD+'</g>',
+ ART={clear:d=>d?SUN:MOON,partly:d=>`<g transform="translate(-1.5 -2.5) scale(.66)">${d?SUN:MOON}</g><g transform="translate(4.4 5.2) scale(.8)">${CLOUD}</g>`,cloud:()=>CLOUD,
+  fog:()=>'<path d="M4 8h16M7 12.5h13M4 17h12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>',
+  drizzle:()=>UP+'<path d="M9.5 18l-1 2.6M15 18l-1 2.6" fill="none" stroke="var(--lo)" stroke-width="2" stroke-linecap="round"/>',
+  rain:()=>UP+'<path d="M8 17.8l-1.6 4M12.6 17.8l-1.6 4M17.2 17.8l-1.6 4" fill="none" stroke="var(--lo)" stroke-width="2" stroke-linecap="round"/>',
+  snow:()=>UP+'<g fill="currentColor"><circle cx="7.6" cy="19.4" r="1.3"/><circle cx="12.3" cy="21.3" r="1.3"/><circle cx="17" cy="19.4" r="1.3"/></g>',
+  storm:()=>UP+'<path fill="var(--acc)" d="M13.2 14.4l-4 5h3L10.6 23.6l5-5.6h-3l1.6-3.6Z"/>'};
+// label given: the icon stands alone and is named; no label: text sits beside it and the icon is hidden from screen readers
+function wi(code,day,sz,label){const [k,tx]=WC(code,day);return `<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" ${label?`role="img" aria-label="${tx}"`:'aria-hidden="true"'} style="flex:none">${ART[k](day)}</svg>`}
+const DROP='<svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" style="flex:none"><path fill="var(--lo)" d="M12 2.5s7 7.4 7 12.3a7 7 0 0 1-14 0C5 9.9 12 2.5 12 2.5Z"/></svg>';
+const PLAY='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7Z"/></svg>',PAUSE='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>';
+
+const hf=t=>new Date(t).toLocaleTimeString([], {hour:'numeric'}).toLowerCase().replace(' ','');
+const tf=t=>new Date(t).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}).toLowerCase();
+const tz=d=>d?d.toLocaleTimeString([], {timeZone:W.timezone,hour:'numeric',minute:'2-digit'}).toLowerCase():'not today';
+const dur=m=>Math.floor(m/36e5)+'h '+r0(m%36e5/6e4)+'m';
+const col=t=>`hsl(${Math.max(0,Math.min(220,(100-t)/70*220))},75%,52%)`;
+const kv=(k,v,note)=>`<div class="kv"><span>${k}</span><span class="v"><b>${v}</b>${note?` <small>${note}</small>`:''}</span></div>`;
+const FLY=['Good to fly','Use caution','Not recommended'];
+
+// Drone go/no-go. Units: mph, miles, inches, °F. Thresholds are the original Drone tab's.
+function fly(x){
+ let st=0;const why=[],up=n=>st=Math.max(st,n),base=Math.max(0,x.temp-x.dew)*227,ceil=x.lowC!=null&&x.lowC>=30;
+ if(ceil&&base<900){up(1);why.push('Low cloud ceiling')}
+ if(x.ws>22||x.g>30||x.w120>35){up(2);why.push('Winds above safe limits')}
+ else if(x.ws>15||x.g>20||x.w120>25){up(1);why.push('Elevated winds')}
+ if(x.vis<3){up(2);why.push('Visibility under the 3 mile Part 107 minimum')}
+ if(x.precip>0.005||x.pop>=60){up(1);why.push('Precipitation risk')}
+ if(!x.day)why.push('After sunset: night flying needs lighting or a waiver');
+ if(x.dew>=x.temp-3)why.push('Fog or condensation risk');
+ return {st,why,base,ceil}}
+{const ok={ws:5,g:8,w120:10,vis:10,precip:0,pop:0,temp:70,dew:50,lowC:0,day:1};
+ console.assert(fly(ok).st==0&&fly({...ok,g:25}).st==1&&fly({...ok,ws:25}).st==2&&fly({...ok,vis:2.5}).st==2&&fly({...ok,pop:70}).st==1,'fly() self-check failed')}
+function flyAt(k,over){const h=W.hourly;return fly({ws:h.wind_speed_10m[k],g:h.wind_gusts_10m[k],w120:h.wind_speed_120m[k],vis:h.visibility[k]/1609.34,precip:h.precipitation[k],pop:h.precipitation_probability[k],temp:h.temperature_2m[k],dew:h.dew_point_2m[k],lowC:h.cloud_cover_low[k],day:h.is_day[k],...over})}
+
+const waiting=()=>{$('today').innerHTML=`<div class="msg">Loading weather for ${esc(loc.name)}…</div>`;$('hourly').innerHTML=$('dw').innerHTML=''};
+async function load(){
+ const l=loc;$('locName').textContent=loc.name;if(!W)waiting();
+ const u='https://api.open-meteo.com/v1/forecast?latitude='+loc.lat+'&longitude='+loc.lon+
+ '&current=temperature_2m,apparent_temperature,relative_humidity_2m,dew_point_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,cloud_cover,visibility,weather_code,is_day,pressure_msl'+
+ '&hourly=temperature_2m,dew_point_2m,precipitation_probability,precipitation,weather_code,is_day,uv_index,visibility,pressure_msl,cloud_cover,cloud_cover_low,wind_speed_10m,wind_direction_10m,wind_gusts_10m,wind_speed_80m,wind_speed_120m'+
+ '&daily=sunrise,sunset,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,weather_code,wind_speed_10m_max'+
+ '&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=auto&forecast_days=10&past_days=1';
+ const j=u=>fetch(u).then(r=>r.json());
+ const [a,b,c,k,t]=await Promise.allSettled([j(u),
+  j('https://air-quality-api.open-meteo.com/v1/air-quality?latitude='+loc.lat+'&longitude='+loc.lon+'&current=us_aqi'),
+  j('https://api.weather.gov/alerts/active?point='+loc.lat.toFixed(4)+','+loc.lon.toFixed(4)),
+  j('https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json'),getTLE()]);
+ if(l!==loc)return; // location changed while loading
+ if(a.status!='fulfilled'||!a.value.current){
+  if(W)$('upd').textContent='Could not refresh. Showing the forecast from the last update.';
+  else $('today').innerHTML=`<div class="msg">The forecast for ${esc(loc.name)} did not load. Check your connection, then try again.<br><button class="btn" onclick="load()">Reload forecast</button></div>`;
+  return}
+ W=a.value;AQ=b.status=='fulfilled'?b.value.current:null;
+ AL=c.status=='fulfilled'&&c.value.features?c.value.features.map(x=>x.properties):[];
+ // NOAA serves rows as objects ({Kp}) now; older responses were arrays ([time,Kp])
+ KP=null;if(k.status=='fulfilled'&&Array.isArray(k.value)&&k.value.length){const r=k.value[k.value.length-1],v=parseFloat(Array.isArray(r)?r[1]:r.Kp);if(!isNaN(v))KP=v}
+ try{SATS=countSats(loc.lat,loc.lon,t.value)}catch(e){SATS=null}
+ I=Math.max(0,W.hourly.time.findIndex(x=>x>=W.current.time.slice(0,13)));
+ T=Math.max(0,W.daily.time.indexOf(W.current.time.slice(0,10)));
+ renderToday();renderHourly();renderDrone();loadAirspace();
+ $('h1').textContent='Weather for '+loc.name;$('upd').textContent='Updated '+tf(Date.now())+'.';
+ if(map&&!mk.getLatLng().equals([loc.lat,loc.lon])){map.setView([loc.lat,loc.lon]);mk.setLatLng([loc.lat,loc.lon])} // recentre only when the place changed, not on every refresh
+}
+async function getTLE(){const c=store('gpsTle');
+ if(c&&Date.now()-c.t<6*36e5)return c.d;
+ try{const t=await fetch('https://celestrak.org/NORAD/elements/gp.php?GROUP=gps-ops&FORMAT=tle').then(r=>{if(!r.ok)throw 0;return r.text()});if(t.indexOf('1 ')<0)throw 0;store('gpsTle',{t:Date.now(),d:t});return t}catch(e){return c?c.d:null}}
+function countSats(lat,lon,tle){if(!tle||!window.satellite)return null;const S=window.satellite,L=tle.split(/\r?\n/).map(s=>s.trim()).filter(Boolean),now=new Date(),g=S.gstime(now),obs={latitude:lat*Math.PI/180,longitude:lon*Math.PI/180,height:0.1};let n=0,tot=0;
+ for(let i=0;i<L.length-1;i++){if(L[i].startsWith('1 ')&&L[i+1].startsWith('2 ')){try{const rec=S.twoline2satrec(L[i],L[i+1]),pv=S.propagate(rec,now);if(!pv.position)continue;tot++;const el=S.ecfToLookAngles(obs,S.eciToEcf(pv.position,g)).elevation*180/Math.PI;if(el>=10)n++}catch(e){}i++}}
+ return tot?n:null}
+
+// Sky colours come from the weather code and the sun, so the page looks like the sky outside. Each pair keeps white text above 4.5:1.
+function sky(){const c=W.current,d=W.daily,k=c.weather_code,n=+new Date(c.time),tw=[d.sunrise[T],d.sunset[T]].some(t=>Math.abs(n-new Date(t))<27e5);
+ return k>=95?['#171a28','#3a3350']:k>=51?['#1c2b42','#33506e']:k>=3?['#343f4c','#566373']:tw?['#2a2a5c','#9a4526']:!c.is_day?['#0a1230','#1b2756']:['#12468c','#1f5ea6']}
+// Path of the sun (or moon) from rise to set, with the body drawn where it is now.
+function arc(a,b,now,sun){
+ let aa=a?+a:0,bb=b?+b:0;if(a&&b&&bb<aa)bb+=864e5;
+ const has=a&&b,p=has?Math.max(0,Math.min(1,(+now-aa)/(bb-aa))):0,t=Math.PI*(1-p),x=110+95*Math.cos(t),y=106-95*Math.sin(t),c=sun?'var(--acc)':'currentColor';
+ return `<svg viewBox="0 0 220 122" aria-hidden="true" style="width:100%"><path d="M15 106A95 95 0 0 1 205 106" fill="none" stroke="currentColor" stroke-opacity=".45" stroke-width="2" stroke-dasharray="2 6" stroke-linecap="round"/>${p>0?`<path d="M15 106A95 95 0 0 1 ${x} ${y}" fill="none" stroke="${c}" stroke-width="3" stroke-linecap="round"/>`:''}<path d="M2 106h216" stroke="currentColor" stroke-opacity=".45" stroke-width="2"/>${has?`<circle cx="${x}" cy="${y}" r="14" fill="${c}" opacity=".25"/><circle cx="${x}" cy="${y}" r="7.5" fill="${c}"/>`:''}</svg>`}
+function moon(){if(!window.SunCalc)return null;const dt=new Date(),mt=SunCalc.getMoonTimes(dt,loc.lat,loc.lon),p=SunCalc.getMoonIllumination(dt).phase;
+ return {dt,rise:mt.rise,set:mt.set,name:p<.03||p>.97?'New moon':p<.22?'Waxing crescent':p<.28?'First quarter':p<.47?'Waxing gibbous':p<.53?'Full moon':p<.72?'Waning gibbous':p<.78?'Last quarter':'Waning crescent'}}
+const compass=(d,sz)=>`<svg viewBox="0 0 100 100" width="${sz}" height="${sz}" aria-hidden="true" style="flex:none"><circle cx="50" cy="50" r="46" fill="none" stroke="var(--ln)" stroke-width="2"/>${[0,30,60,90,120,150,180,210,240,270,300,330].map(a=>`<path d="M50 6v${a%90?4:7}" stroke="var(--mut)" stroke-width="${a%90?1:2}" transform="rotate(${a} 50 50)"/>`).join('')}<text x="50" y="26" font-size="11" font-weight="700" text-anchor="middle" fill="var(--mut)">N</text><g transform="rotate(${d+180} 50 50)"><path d="M50 22L61 54H54.5V78H45.5V54H39Z" fill="var(--acc)"/></g></svg>`;
+
+function renderToday(){
+ const c=W.current,h=W.hourly,d=W.daily,i=I,P=h.precipitation_probability,A=h.precipitation,now=new Date(c.time),[s1,s2]=sky();
+ document.body.style.setProperty('--sky1',s1);document.body.style.setProperty('--sky2',s2);
+ const al=AL.map(a=>`<details class="alert"><summary>${esc(a.event)}<small>${a.expires?'until '+new Date(a.expires).toLocaleString([], {weekday:'short',hour:'numeric',minute:'2-digit'}):''}</small></summary><p>${esc([a.headline,a.description,a.instruction].filter(Boolean).join('\n\n'))}</p></details>`).join('');
+ // forecast sentences
+ const diff=r0(Math.min(...h.temperature_2m.slice(i,i+12))-d.temperature_2m_min[0]);
+ const out1=`Tonight’s low will be ${Math.abs(diff)<=1?'about the same as':diff<0?'cooler than':'warmer than'} last night’s.`;
+ let out2='No rain expected in the next 24 hours.';
+ if(A[i]>0.004){let e=i;while(e<i+24&&A[e]>0.004)e++;out2=`Rain is likely to end around ${tf(h.time[e]||h.time[i+23])}.`}
+ else{const n=P.slice(i,i+24).findIndex(v=>v>=50);if(n>=0)out2=`Rain is likely around ${tf(h.time[i+n])}.`}
+ // sun by day, moon by night
+ const sr=new Date(d.sunrise[T]),ss=new Date(d.sunset[T]),m=moon(),night=!c.is_day&&m;
+ const sun=night?arc(m.rise,m.set,m.dt,0)+`<div class="sunl"><span>Moonrise ${tz(m.rise)}</span><span>Moonset ${tz(m.set)}</span></div><p class="note">Sunrise at ${tf(now>ss&&d.sunrise[T+1]||sr)}</p>`
+  :arc(sr,ss,now,1)+`<div class="sunl"><span>Sunrise ${tf(sr)}</span><span>Sunset ${tf(ss)}</span></div><p class="note">${now<sr?'Before sunrise':ss>now?dur(ss-now)+' of daylight left':'The sun has set'}</p>`;
+ // 24h strip
+ const N=24,temps=h.temperature_2m.slice(i,i+N),mn=Math.min(...temps),mx=Math.max(...temps),pts=temps.map((t,k)=>[k*64+32,96-(t-mn)/(mx-mn||1)*52]);
+ let cols='',bars='',lab='';
+ for(let k=0;k<N;k++){const j=i+k;cols+=`<div class="${k?'':'now'}">${k?hf(h.time[j]):'Now'}${wi(h.weather_code[j],h.is_day[j],26,1)}<em>${P[j]>=20?P[j]+'%':''}</em></div>`;
+  bars+=`<div><span><i style="height:${Math.min(100,A[j]/.25*100)}%"></i></span></div>`;lab+=`<div>${A[j]>0.004?A[j].toFixed(2)+'″':''}</div>`}
+ // daily rows
+ const days=d.time.map((_,k)=>k).slice(T),all=days.flatMap(k=>[d.temperature_2m_min[k],d.temperature_2m_max[k]]),gmn=Math.min(...all),gs=(Math.max(...all)-gmn)||1;
+ const rows=days.map(k=>{const l=d.temperature_2m_min[k],hh=d.temperature_2m_max[k],dn=new Date(d.time[k]+'T12:00');
+  return `<div class="dr"><span class="d">${k==T?'Today':dn.toLocaleDateString([], {weekday:'short'})+' '+dn.getDate()}</span><span class="pp" title="Chance of rain">${DROP}${d.precipitation_probability_max[k]??0}%</span><span class="tx">${wi(d.weather_code[k],1,22,0)}<span>${WC(d.weather_code[k])[1]}</span></span><span class="l">${r0(l)}°</span><div class="rg"><i style="left:${(l-gmn)/gs*100}%;right:${100-(hh-gmn)/gs*100}%;background:linear-gradient(90deg,${col(l)},${col(hh)})"></i></div><span>${r0(hh)}°</span></div>`}).join('');
+ // right now
+ const hum=c.relative_humidity_2m,uv=h.uv_index[i]||0,aq=AQ&&AQ.us_aqi!=null?AQ.us_aqi:null,vis=c.visibility/1609.34,dew=c.dew_point_2m,pr=c.pressure_msl*.02953,pr3=h.pressure_msl[Math.max(0,i-3)]*.02953;
+ const tot=A.slice(i,i+24).reduce((a,b)=>a+b,0);
+ $('today').innerHTML=`<div class="hero"><div><div class="t">${r0(c.temperature_2m)}°</div><div class="cond">${wi(c.weather_code,c.is_day,34,0)}${WC(c.weather_code,c.is_day)[1]}</div><div class="s">Feels like ${r0(c.apparent_temperature)}°. High ${r0(d.temperature_2m_max[T])}°, low ${r0(d.temperature_2m_min[T])}°.</div></div><div>${sun}</div></div>
+ <p class="lead">${out2} ${out1}</p>${al}
+ <h2>Next 24 hours</h2>
+ <div class="strip" tabindex="0" role="group" aria-label="Hourly temperature and rain, scrolls sideways"><div style="width:${N*64}px"><div class="cols">${cols}</div><svg width="${N*64}" height="112" aria-hidden="true"><path d="${pts.map((p,k)=>(k?'L':'M')+p[0]+' '+p[1]).join('')}" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linejoin="round"/>${pts.map((p,k)=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="var(--acc)"/><text x="${p[0]}" y="${p[1]-12}" text-anchor="middle" font-size="14" font-weight="600" fill="currentColor">${r0(temps[k])}°</text>`).join('')}</svg><div class="bars">${bars}</div><div class="lab">${lab}</div></div></div>
+ <h2>Next 10 days</h2><div class="p"><div class="list">${rows}</div></div>
+ <h2>Right now</h2><div class="p"><div class="list cols2">
+ ${kv('Wind',r0(c.wind_speed_10m)+' mph '+dir(c.wind_direction_10m),'gusts '+r0(c.wind_gusts_10m))}
+ ${kv('Humidity',hum+'%',hum<30?'Low':hum<60?'Comfortable':hum<80?'High':'Very high')}
+ ${kv('Dew point',r0(dew)+'°',dew<55?'Dry':dew<65?'A bit humid':dew<70?'Muggy':'Oppressive')}
+ ${kv('UV index',uv<1?'Under 1':r0(uv),uv<3?'Low':uv<6?'Moderate':uv<8?'High':uv<11?'Very high':'Extreme')}
+ ${kv('Air quality',aq==null?'Unavailable':aq,aq==null?'':aq<=50?'Good':aq<=100?'Moderate':aq<=150?'Unhealthy for sensitive groups':'Unhealthy')}
+ ${kv('Pressure',pr.toFixed(2)+' inHg',pr<pr3-.005?'falling':pr>pr3+.005?'rising':'steady')}
+ ${kv('Visibility',(vis>=10?r0(vis):vis.toFixed(1))+' mi',vis>=6?'Clear':vis>=3?'Hazy':'Poor')}
+ ${kv('Rain, next 24h',tot.toFixed(2)+' in','now '+c.precipitation.toFixed(2)+' in/h')}
+ ${m?kv('Moon',m.name,night?'':'rises '+tz(m.rise)):''}</div></div>`;
+}
+
+function renderHourly(){
+ const h=W.hourly;let s='<h2>Next 48 hours</h2><div class="p"><div class="list"><div class="hr h"><span>Hour</span><span>Temp</span><span>Cloud</span><span>Wind, mph</span><span>Rain</span><span></span></div>';
+ for(let k=I;k<I+48&&k<h.time.length;k++){const cc=h.cloud_cover[k],p=h.precipitation_probability[k]??0,f=flyAt(k);
+  if(k>I&&h.time[k].endsWith('T00:00'))s+=`</div></div><h2>${new Date(h.time[k]).toLocaleDateString([], {weekday:'long'})}</h2><div class="p"><div class="list">`;
+  s+=`<div class="hr"><b>${hf(h.time[k])}</b><span class="tp">${wi(h.weather_code[k],h.is_day[k],22,1)}${r0(h.temperature_2m[k])}°</span><div>${cc}%<div class="bar"><i style="width:${cc}%"></i></div></div><div>${r0(h.wind_speed_10m[k])} ${dir(h.wind_direction_10m[k])}<small>gusts ${r0(h.wind_gusts_10m[k])}</small></div><div>${p}%${h.precipitation[k]>0.004?' · '+h.precipitation[k].toFixed(2)+'″':''}<div class="bar rn"><i style="width:${p}%"></i></div></div><i class="dot s${f.st}" role="img" aria-label="Drone: ${FLY[f.st]}" title="Drone: ${FLY[f.st]}"></i></div>`}
+ $('hourly').innerHTML=s+'</div></div><p class="mut" style="margin:12px 2px 0">The dot on each row is the drone rating for that hour: green is good to fly, yellow is use caution, red is not recommended.</p>';
+}
+
+function renderDrone(){
+ const c=W.current,h=W.hourly,d=W.daily,i=I,vis=c.visibility/1609.34,now=new Date(c.time),ss=new Date(d.sunset[T]),sr=new Date(d.sunrise[T]);
+ const f=flyAt(i,{ws:c.wind_speed_10m,g:c.wind_gusts_10m,vis,precip:c.precipitation,temp:c.temperature_2m,dew:c.dew_point_2m,day:c.is_day});
+ const ceilTxt=f.base>12000?'Above 12,000 ft':'About '+(r0(f.base/100)*100).toLocaleString()+' ft';
+ // Part 107: 3 statute miles visibility and 500 ft below cloud (107.51); civil twilight is 30 minutes either side of the sun (107.29)
+ const room=f.ceil?r0((f.base-500)/10)*10:400,tw=18e5,light=now<sr-tw||now>+ss+tw?2:now<sr||now>ss?1:0;
+ // next 24h, hour by hour; "window" = first run of good daylight hours
+ let win='',a=-1,b=-1;
+ for(let k=i;k<i+24&&k<h.time.length;k++){const s=flyAt(k).st,good=s==0&&h.is_day[k];
+  win+=`<div class="${h.is_day[k]?'':'n'}"><i class="s${s}" title="${hf(h.time[k])}: ${FLY[s]}"></i>${(k-i)%3?'':hf(h.time[k])}</div>`;
+  if(good&&a<0)a=k;if(a>=0&&b<0&&!good)b=k}
+ const winTxt=a<0?'No good daylight window in the next 24 hours':`Next good window: ${a==i?'now':hf(h.time[a])} to ${hf(h.time[b<0?Math.min(i+24,h.time.length-1):b])}`;
+ const alt=[['33 ft',c.wind_speed_10m],['260 ft',h.wind_speed_80m[i]],['400 ft',h.wind_speed_120m[i]]],mxw=Math.max(30,...alt.map(x=>x[1]));
+ $('dw').innerHTML=`<div class="status s${f.st}"><b>${FLY[f.st]}</b><span>${f.why.join('. ')||'Wind, visibility, cloud and rain are all within limits'}.</span></div>
+ <h2>${winTxt}</h2><div class="p" style="padding-bottom:12px"><div class="win" role="img" aria-label="${winTxt}">${win}</div><small>One bar per hour. Faded bars are night.</small></div>
+ <div class="two"><div><h2>Wind</h2><div class="p"><div class="compass">${compass(c.wind_direction_10m,112)}<div><div class="big">${r0(c.wind_speed_10m)} mph</div><div class="mut" style="margin-top:6px">From ${dir(c.wind_direction_10m)} (${r0(c.wind_direction_10m)}°), gusts ${r0(c.wind_gusts_10m)} mph</div></div></div>
+ <div class="list">${alt.map(([l,v])=>`<div class="ab"><span>${l}</span><div class="bar"><i style="width:${v/mxw*100}%"></i></div><b>${r0(v)} mph</b></div>`).join('')}</div></div></div>
+ <div><h2>Part 107 weather limits</h2><div class="p"><div class="list">
+ ${kv('Visibility, 3 mi minimum',tone(vis.toFixed(1)+' mi',vis<3?2:0),vis<3?'below minimum':'')}
+ ${kv('Cloud, stay 500 ft below',tone(!f.ceil?'No low cloud':room>=400?'400 ft usable':room>0?'Stay below '+room+' ft':'Ceiling too low',!f.ceil||room>=400?0:room>0?1:2),f.ceil?'ceiling '+ceilTxt.toLowerCase()+', estimate':'')}
+ ${kv('Light',tone(['Daylight','Civil twilight','Night'][light],light?1:0),light==0?'sunset '+tf(ss):light==1?'anti-collision light required':'light and night training required')}
+ ${kv('Cloud cover',c.cloud_cover+'%')}
+ ${kv('GPS satellites',SATS==null?'Unavailable':tone(SATS+' in view',SATS>=8?0:SATS>=6?1:2))}
+ ${kv('Kp index',KP==null?'Unavailable':tone(KP.toFixed(1),KP<4?0:KP<5?1:2),KP==null?'':KP<4?'Good':KP<5?'Fair':KP<7?'Degraded':'Poor')}</div></div></div></div>
+ <h2>Airspace here</h2><div class="p" id="air"><p class="mut" style="margin:12px 0">Checking FAA airspace data for ${esc(loc.name)}…</p></div>
+ <p class="mut" style="margin:12px 2px 0;max-width:70em">Part 107 also limits you to 400 ft above the ground (or within 400 ft of a structure), 100 mph, and keeping the aircraft in sight. Winds at 260 and 400 ft are model estimates. Cloud ceiling is estimated from the gap between temperature and dew point (about 227 ft per °F) and only when low cloud covers 30% or more; it is not a measured ceiling. GPS satellites is a prediction of satellites more than 10° above your horizon, not what your drone has locked. The airspace rows come from FAA data and do not replace an authorization.</p>`;
+}
+// status dot plus text: colour is never the only signal, and white text keeps its contrast on every sky
+const tone=(t,s)=>`<i class="dot s${s}"></i>${t}`;
+
+// FAA open data (US only). A point or box query against one of the FAA's public map services.
+const FAA='https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/arcgis/rest/services/';
+const faaq=(svc,geo,fields,n=50)=>fetch(FAA+svc+'/FeatureServer/0/query?where=1%3D1&'+geo+'&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields='+fields+'&resultRecordCount='+n+'&f=geojson').then(r=>r.json()).then(j=>{if(!j.features)throw 0;return j.features});
+const box=(w,s,e,n)=>'geometryType=esriGeometryEnvelope&geometry='+[w,s,e,n].join(',');
+// nautical miles and compass bearing from the current location
+function nm(lat,lon){const R=Math.PI/180,x=(lon-loc.lon)*R*Math.cos(loc.lat*R),y=(lat-loc.lat)*R;return [Math.hypot(x,y)*3440.07,dir((Math.atan2(x,y)/R+360)%360)]}
+async function loadAirspace(){
+ const l=loc,pt='geometryType=esriGeometryPoint&geometry='+loc.lon+','+loc.lat;
+ try{
+  const [cls,grid,apts]=await Promise.all([faaq('Class_Airspace',pt,'NAME,CLASS,LOCAL_TYPE,LOWER_VAL'),faaq('FAA_UAS_FacilityMap_Data',pt,'CEILING,APT1_FAAID,APT1_LAANC'),faaq('US_Airport',box(loc.lon-.2,loc.lat-.17,loc.lon+.2,loc.lat+.17),'IDENT,NAME',200)]);
+  if(l!==loc||!$('air'))return;
+  // surface areas of Class B, C, D and E2 need authorization (107.41); shelves that start above the ground do not
+  const sfc=cls.map(x=>x.properties).find(p=>(/^[BCD]$/.test(p.CLASS)&&!p.LOWER_VAL)||p.LOCAL_TYPE=='CLASS_E2'),g=grid[0]&&grid[0].properties;
+  const near=apts.map(a=>({...a.properties,d:nm(a.geometry.coordinates[1],a.geometry.coordinates[0])})).sort((a,b)=>a.d[0]-b.d[0])[0];
+  $('air').innerHTML=`<div class="list">
+  ${kv('Airspace at the surface',tone(sfc?'Class '+sfc.CLASS:'Uncontrolled (Class G)',sfc?1:0),sfc?'authorization required':'no authorization needed')}
+  ${kv('LAANC altitude grid',g?tone(g.CEILING+' ft',g.CEILING>=400?0:g.CEILING>0?1:2):'None here',g?esc(g.APT1_FAAID)+(g.APT1_LAANC?', LAANC available':', request in FAADroneZone'):'')}
+  ${kv('Nearest airport or heliport',near?esc(near.NAME)+' ('+esc(near.IDENT)+')':'None within 10 nm',near?near.d[0].toFixed(1)+' nm '+near.d[1]:'')}
+  ${kv('Flight restrictions (TFRs)','<a href="#radar">Check the map</a>','not checked automatically')}</div>`;
+ }catch(e){if(l===loc&&$('air'))$('air').innerHTML='<p style="margin:12px 0">FAA airspace data did not load. The FAA server is shared and is sometimes busy for a minute. Until it loads, check the sectional chart on the <a href="#radar">Map</a> tab.<br><button class="reset" onclick="loadAirspace()">Check airspace again</button></p>'}
+}
+
+async function initRadar(){
+ if(map){map.invalidateSize();return}
+ map=L.map('map',{fadeAnimation:false,markerZoomAnimation:false}).setView([loc.lat,loc.lon],10);
+ const osm=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,keepBuffer:1,updateWhenZooming:false,referrerPolicy:'origin',attribution:'© OpenStreetMap'});let er=0;
+ osm.on('tileerror',()=>{if(++er==3&&map.hasLayer(osm)){map.removeLayer(osm);L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',{maxZoom:18,keepBuffer:1,updateWhenZooming:false,subdomains:'abcd',attribution:'© OpenStreetMap contributors © CARTO'}).addTo(map).bringToBack()}});
+ // FAA layers. The sectional is published for zoom 8 to 12; TFRs come as images because the FAA server does not allow data requests from other sites.
+ const sect=L.tileLayer('https://tiles.arcgis.com/tiles/ssFJjBXIUyZDrSYZ/arcgis/rest/services/VFR_Sectional/MapServer/tile/{z}/{y}/{x}',{minZoom:6,minNativeZoom:8,maxNativeZoom:12,maxZoom:18,keepBuffer:1,attribution:'Sectional chart: FAA'}).addTo(map);
+ const tfr=L.tileLayer.wms('https://tfr.faa.gov/geoserver/TFR/wms',{layers:'TFR:V_TFR_LOC',format:'image/png',transparent:true,opacity:.45,zIndex:6,attribution:'TFRs: FAA'}).addTo(map);
+ const apt=L.geoJSON(null,{pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:6,color:'#fff',weight:2,fillColor:'#15191c',fillOpacity:1}),
+  onEachFeature:(f,l)=>l.bindPopup(`<b>${esc(f.properties.NAME)}</b> (${esc(f.properties.IDENT)})<br>Elevation ${r0(f.properties.ELEVATION)} ft${f.properties.PRIVATEUSE?'<br>Private use':''}`)}).addTo(map);
+ const grid=L.geoJSON(null,{style:f=>({color:f.properties.CEILING>=400?'#1a7f37':f.properties.CEILING>0?'#b07a00':'#c5302a',weight:1,fillOpacity:.3}),
+  onEachFeature:(f,l)=>l.bindPopup(`<b>LAANC ceiling ${f.properties.CEILING} ft</b><br>${esc(f.properties.APT1_FAAID)}${f.properties.APT1_LAANC?', LAANC available':', request in FAADroneZone'}`)});
+ const over={'TFRs':tfr,'Airports':apt,'Drone altitude grid':grid},lc=L.control.layers({'Sectional chart':sect,'Street map':osm},over).addTo(map);
+ // airports and the altitude grid are fetched for the area on screen, and only when zoomed in enough to be useful
+ async function fill(){const b=map.getBounds(),e=box(b.getWest(),b.getSouth(),b.getEast(),b.getNorth()),z=map.getZoom();let msg='';
+  try{if(map.hasLayer(apt)){if(z>=9)apt.clearLayers().addData(await faaq('US_Airport',e,'IDENT,NAME,ELEVATION,PRIVATEUSE',500));else{apt.clearLayers();msg='Zoom in to see airport markers.'}}
+   if(map.hasLayer(grid)){if(z>=10)grid.clearLayers().addData(await faaq('FAA_UAS_FacilityMap_Data',e,'CEILING,APT1_FAAID,APT1_LAANC',2000));else{grid.clearLayers();msg='Zoom in to see the drone altitude grid.'}}
+  }catch(x){msg='FAA airport and grid data did not load. Move the map to try again.'}
+  $('ms').textContent=msg||'Grey areas with a black outline are active TFRs. Tap an airport dot or a grid square for details, and confirm TFRs at tfr.faa.gov before you fly.'}
+ map.on('moveend overlayadd overlayremove',fill);fill();
+ mk=L.marker([loc.lat,loc.lon]).addTo(map);
+ try{const j=await fetch(LW+'/public/weather-maps.json').then(r=>r.json()),host=j.host||LW;
+  frames=[...(j.radar.past||[]),...(j.radar.nowcast||[])];frames.forEach(f=>f.u=host+f.path+'/256/{z}/{x}/{y}/4/1_1.png');
+  fi=Math.max(0,(j.radar.past||[]).length-1);rl=L.tileLayer(frames[fi].u,{opacity:.75,maxNativeZoom:10,maxZoom:18,zIndex:5,keepBuffer:0,updateWhenZooming:false,updateWhenIdle:true}).addTo(map);
+  map.on('zoomstart',()=>{if(timer)$('play').click()});$('rng').max=frames.length-1;showF(fi);lc.addOverlay(rl,'Rain radar');
+ }catch(e){$('rt').textContent='Radar did not load';$('play').disabled=$('rng').disabled=true}
+}
+function showF(n){if(!rl)return;fi=n;rl.setUrl(frames[n].u);$('rng').value=n;$('rt').textContent=tf(frames[n].time*1000)+(frames[n].time>Date.now()/1000?' (forecast)':'')}
+function playing(on){$('play').innerHTML=on?PAUSE:PLAY;$('play').setAttribute('aria-label',on?'Pause radar loop':'Play radar loop')}
+$('play').onclick=()=>{if(timer){clearInterval(timer);timer=null;playing(0)}else if(rl){playing(1);timer=setInterval(()=>showF((fi+1)%frames.length),600)}};
+$('rng').oninput=e=>showF(+e.target.value);playing(0);
+
+// tabs: the URL hash holds the open tab, so Back and bookmarks work. The map tab keeps its old "radar" hash.
+const TABS=['today','hourly','drone','radar'];
+function show(t){if(!TABS.includes(t))t='today';
+ document.querySelectorAll('nav button').forEach(b=>{const on=b.dataset.t==t;b.classList.toggle('on',on);on?b.setAttribute('aria-current','page'):b.removeAttribute('aria-current')});
+ TABS.forEach(x=>$(x).classList.toggle('on',x==t));if(t=='radar')initRadar();window.scrollTo(0,0)}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>location.hash=b.dataset.t);
+onhashchange=()=>show(location.hash.slice(1));show(location.hash.slice(1));
+
+// location
+function setLoc(l){loc=l;W=null;store('loc',l);store('locs',[l,...(store('locs')||[]).filter(x=>x.name!=l.name)].slice(0,5));dlg.close();load()}
+function listLocs(a,empty){$('res').innerHTML=a.length?'':`<p class="mut">${empty}</p>`;a.forEach(l=>{const el=document.createElement('button');el.className='r';el.textContent=l.label||l.name;el.onclick=()=>setLoc({lat:l.lat,lon:l.lon,name:l.name});$('res').appendChild(el)})}
+async function ipLoc(){try{const j=await fetch('https://ipwho.is/').then(r=>r.json());if(!j.success)throw 0;setLoc({lat:j.latitude,lon:j.longitude,name:[j.city,j.region].filter(Boolean).join(', ')+' (approx.)'})}catch(x){alert('Your location could not be found. Search for a city instead.')}}
+function gps(){!navigator.geolocation?ipLoc():navigator.geolocation.getCurrentPosition(async p=>{let name='My location';
+ try{const g=await fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+p.coords.latitude+'&lon='+p.coords.longitude).then(r=>r.json()),a=g.address||{};name=[a.city||a.town||a.village||a.hamlet||a.suburb,a.state].filter(Boolean).join(', ')||name}catch(e){}
+ setLoc({lat:p.coords.latitude,lon:p.coords.longitude,name})},ipLoc,{enableHighAccuracy:true,timeout:15000,maximumAge:60000})}
+$('bGps').onclick=gps;$('bRef').onclick=load;
+$('locBtn').onclick=()=>{$('q').value='';listLocs(store('locs')||[],'Type a city name. Places you pick will be listed here next time.');dlg.showModal()};
+let st;$('q').oninput=e=>{clearTimeout(st);st=setTimeout(async()=>{const v=e.target.value.trim();if(v.length<2)return;
+ try{const j=await fetch('https://geocoding-api.open-meteo.com/v1/search?count=6&name='+encodeURIComponent(v)).then(r=>r.json());
+  listLocs((j.results||[]).map(r=>({lat:r.latitude,lon:r.longitude,name:[r.name,r.admin1].filter(Boolean).join(', '),label:[r.name,r.admin1,r.country].filter(Boolean).join(', ')})),`No place matches “${esc(v)}”. Check the spelling or try a nearby city.`)}
+ catch(x){listLocs([],'The search did not load. Check your connection and type again.')}},300)};
+
+// Menu position (phones): if the bottom menu floats above the screen edge on an installed iOS app, nudge it down
+let STR=+store('stretch')||0;
+function adj(n){STR=Math.max(-40,Math.min(120,STR+n));store('stretch',STR);applyStr()}
+function applyStr(){document.documentElement.style.setProperty('--stretch',STR+'px');$('sv').textContent=STR}
+applyStr();
+load();setInterval(load,600000);
 </script></body></html>
