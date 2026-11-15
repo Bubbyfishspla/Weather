@@ -30,10 +30,12 @@ a{color:inherit;text-underline-offset:2px}
 small,.mut{color:var(--mut);font-size:13px}
 svg{display:block}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+html{scroll-padding:76px 0} /* keyboard focus never hides under the floating nav */
+.skip{position:absolute;left:8px;top:-60px;z-index:30;background:#fff;color:#10151c;border-radius:6px;padding:10px 14px;font-weight:600}.skip:focus{top:8px}
+main:focus{outline:0} /* focused by the skip button only; it is not a control */
 
 header{display:flex;align-items:center;gap:8px;max-width:980px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 10px) 16px 6px}
-#locBtn{display:flex;gap:6px;align-items:center;min-width:0;height:44px;background:var(--card);border-radius:22px;padding:0 10px 0 16px;font-weight:600}
-#locBtn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#locBtn{display:flex;gap:6px;align-items:center;min-width:0;min-height:44px;background:var(--card);border-radius:22px;padding:4px 10px 4px 16px;font-weight:600;line-height:1.2;text-align:left} /* a long place name wraps; it is never cut off */
 .sp{flex:1}
 .ib{flex:none;width:44px;height:44px;border-radius:50%;background:var(--card);display:grid;place-items:center}
 #locBtn:hover,.ib:hover{background:var(--track)}
@@ -64,7 +66,7 @@ details.alert{background:#6e2622;color:#fff;border-radius:var(--r);padding:12px 
 details.alert summary{font-weight:600}details.alert summary small{color:#f6d9d6;font-weight:400;margin-left:8px}
 details.alert p{margin:8px 0 0;white-space:pre-line;font-size:14px}
 
-.strip{overflow-x:auto;background:var(--card);border-radius:var(--r)}
+.strip{position:relative;overflow-x:auto;background:var(--card);border-radius:var(--r)} /* relative, so its screen-reader text stays inside the scroller and cannot widen the page */
 .cols,.bars,.lab{display:flex}
 .cols div,.bars div,.lab div{flex:none;width:64px;text-align:center}
 .cols div{font-size:13px;padding-top:12px;color:var(--mut)}.cols .now{color:var(--tx);font-weight:700}
@@ -87,18 +89,31 @@ details.alert p{margin:8px 0 0;white-space:pre-line;font-size:14px}
 .hr.h{color:var(--mut);font-size:13px;padding:8px 0}
 .hr small{display:block}.hr .tp{display:flex;align-items:center;gap:6px;font-weight:600}
 .bar{height:5px;border-radius:3px;background:var(--track);overflow:hidden;margin-top:4px}.bar i{display:block;height:100%;background:var(--tx)}.bar.rn i{background:var(--lo)}
-.dot{width:10px;height:10px;border-radius:50%}
+/* Status marks differ in shape as well as colour (WCAG 1.4.1): circle good, triangle caution, square stop. */
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%}
+.dot.s1{width:12px;border-radius:0;clip-path:polygon(50% 0,100% 100%,0 100%)}.dot.s2{border-radius:2px}
 i.s0{background:var(--ok)}i.s1{background:var(--warn)}i.s2{background:var(--bad)}
 
 .kv .dot{display:inline-block;margin-right:8px}
-.kv a{font-weight:600}
+.kv a{font-weight:600;display:inline-block;padding:11px 0;margin:-11px 0} /* 44px tap area without a taller row */
+.kv small{white-space:nowrap} /* a note wraps as a whole, never mid-phrase */
 /* Preflight checklist: native checkboxes, one tappable row each. */
 .chk h3{font-size:13px;font-weight:600;color:var(--mut);margin:0;padding:14px 0 4px;border:0}
 .chk label{display:flex;gap:12px;align-items:center;min-height:44px;padding:8px 0;cursor:pointer}
-.chk input{flex:none;width:20px;height:20px;accent-color:var(--acc);cursor:pointer}
+/* drawn checkbox: the browser default is too faint on the sky to see its edge (WCAG 1.4.11) */
+.chk input{flex:none;width:22px;height:22px;margin:0;appearance:none;-webkit-appearance:none;border:2px solid var(--tx);border-radius:4px;cursor:pointer}
+.chk input:checked{background:var(--acc) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5' fill='none' stroke='%231a1a1a' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% no-repeat;border-color:var(--acc)}
 .chk label:has(:checked){color:var(--mut)}
 .reset{border:1px solid var(--ln);border-radius:6px;min-height:44px;padding:0 16px;font-weight:600;margin:12px 0 0}.reset:hover{background:var(--track)}
-.leaflet-container{color:#15191c}
+.leaflet-container{color:#15191c;background:var(--card)} /* dark while tiles load, not a grey flash */
+/* Airspace: map beside the list of what covers the pin; stacked on phones. */
+.air2{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;align-items:start}
+#amap{height:480px;border-radius:var(--r);overflow:hidden}
+.key{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--mut);margin:8px 2px 0}
+.key span{display:inline-flex;align-items:center;gap:6px}.key i{width:12px;height:12px;border-radius:3px;flex:none}
+.adv{display:flex;gap:10px;padding:12px 0}.adv .dot{flex:none;margin-top:6px}.adv b,.adv small{display:block}
+i.si{background:var(--lo)}
+.gl{background:none;border:0;box-shadow:none;padding:0;font-weight:700;font-size:11px;color:#15191c}.gl::before{display:none}
 /* Drone: one status block. The status colour is the only large colour block on the page. */
 .status{border-radius:var(--r);padding:22px 20px;color:#fff;margin-top:12px}
 .status b{display:block;font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
@@ -106,6 +121,7 @@ i.s0{background:var(--ok)}i.s1{background:var(--warn)}i.s2{background:var(--bad)
 .status.s0{background:#1f5a31}.status.s1{background:#6b5a14}.status.s2{background:#6e2622}
 .win{display:flex;gap:2px;padding-top:10px}.win div{flex:1;text-align:center;font-size:11px;color:var(--mut);min-width:0}
 .win i{display:block;height:26px;border-radius:3px;margin-bottom:4px}.win .n i{opacity:.35}
+.win i.s1{height:17px;margin-top:9px}.win i.s2{height:8px;margin-top:18px} /* bar height repeats the rating, so colour is not the only cue */
 .two{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
 .compass{display:flex;align-items:center;gap:20px;padding:10px 0 14px}
 .big{font-size:40px;font-weight:700;letter-spacing:-.03em;line-height:1}
@@ -124,7 +140,9 @@ footer p{margin:0 0 6px}
 
 dialog{background:var(--card);color:var(--tx);border:1px solid var(--ln);border-radius:var(--r);width:92%;max-width:420px;padding:14px;box-shadow:0 12px 40px rgba(0,0,0,.35)}
 dialog::backdrop{background:rgba(0,0,0,.5)}
-dialog input{width:100%;padding:12px;font:inherit;font-size:16px;border:1px solid var(--ln);background:var(--bg);color:var(--tx);border-radius:6px}
+dialog label{display:block;font-weight:600;margin:0 0 6px}
+dialog input{width:100%;padding:12px;font:inherit;font-size:16px;border:1px solid var(--mut);background:var(--bg);color:var(--tx);border-radius:6px}
+dialog input::placeholder{color:var(--mut);opacity:1}
 dialog .r{display:block;width:100%;text-align:left;padding:13px 6px;border-bottom:1px solid var(--ln);border-radius:0}dialog .r:hover{background:var(--track)}
 dialog .act{display:flex;justify-content:space-between;margin-top:10px}dialog .act button{min-height:44px;padding:0 6px;font-weight:600;text-decoration:underline;text-underline-offset:2px}
 
@@ -135,28 +153,35 @@ dialog .act{display:flex;justify-content:space-between;margin-top:10px}dialog .a
  footer{padding-bottom:110px}
  .hero{grid-template-columns:1fr;gap:18px;padding-top:14px}
  .lead{font-size:17px}
- .dr{grid-template-columns:64px 54px 26px 34px 1fr 34px;gap:8px}.dr .tx span{display:none}
+ .dr{grid-template-columns:64px 54px 26px 34px 1fr 34px;gap:8px}.dr .tx span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)} /* hidden from view, still read aloud */
  .cols2{columns:1}
  .hr{grid-template-columns:42px 62px 1fr 1.3fr 1.2fr 10px;gap:8px}
  main,footer{padding:0 12px}.p{padding:6px 12px}
- .two{grid-template-columns:1fr}
+ .two,.air2{grid-template-columns:1fr}#amap{height:360px}
  .mob{display:block}
 }
 @media(max-width:760px) and (display-mode:standalone){nav{padding-bottom:calc(env(safe-area-inset-bottom,0px)*.5)}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}button:active{transform:none}}
 </style></head><body>
+<button class="skip" onclick="$('main').focus()">Skip to the forecast</button>
 <header>
- <button id="locBtn" aria-label="Change location"><span id="locName">…</span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></svg></button>
+ <button id="locBtn"><span class="sr">Change location, now </span><span id="locName">…</span><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5"/></svg></button>
  <div class="sp"></div>
  <button class="ib" id="bGps" aria-label="Use my location" title="Use my location"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.5"/><path d="M12 2v3.5M12 18.5V22M2 12h3.5M18.5 12H22"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg></button>
  <button class="ib" id="bRef" aria-label="Refresh" title="Refresh"><svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4v4.5H15"/></svg></button>
 </header>
-<nav aria-label="Sections"><button data-t="today">Today</button><button data-t="hourly">Hourly</button><button data-t="drone">Drone</button><button data-t="radar">Map</button></nav>
-<main>
+<nav aria-label="Sections"><button data-t="today">Today</button><button data-t="hourly">Hourly</button><button data-t="drone">Drone</button><button data-t="radar">Radar</button></nav>
+<main id="main" tabindex="-1">
  <h1 class="sr" id="h1">Weather</h1>
  <section class="page" id="today"></section>
  <section class="page" id="hourly"></section>
  <section class="page" id="drone"><div id="dw"></div>
+  <h2>Airspace</h2>
+  <div class="air2"><div><div id="amap" role="region" aria-label="Airspace map"></div><p class="mut" id="ms" style="margin:8px 2px 0" aria-live="polite"></p>
+    <p style="margin:0;display:flex;flex-wrap:wrap;gap:0 8px"><button class="reset" onclick="checkPin(amap.getCenter())">Put the pin at the map centre</button><button class="reset" onclick="amap.setView(pin,amap.getZoom(),{animate:false})">Centre the map on the pin</button></p>
+    <p class="key" id="key"></p></div>
+   <div class="p" id="air" aria-live="polite"></div></div>
+  <p class="mut" style="margin:12px 2px 0;max-width:70em">Airspace data comes from the FAA and the National Park Service and covers the US only. It does not replace an authorization, and it can be out of date.</p>
   <h2>Preflight checklist</h2>
   <form class="p chk" style="padding-bottom:14px">
    <h3>Before you leave</h3>
@@ -181,15 +206,15 @@ dialog .act{display:flex;justify-content:space-between;margin-top:10px}dialog .a
    <button class="reset" type="reset">Clear checklist</button>
   </form>
   <p class="mut" style="margin:12px 2px 0;max-width:70em">The checklist follows 14 CFR 107.49 and the preflight lists in FAA Advisory Circular 107-2A. It is a memory aid, not legal advice, and your aircraft manual comes first.</p></section>
- <section class="page" id="radar"><div id="map"></div><p class="mut" id="ms" style="margin:8px 2px 0" aria-live="polite"></p>
+ <section class="page" id="radar"><div id="map" role="region" aria-label="Rain radar map"></div>
   <div class="rc"><button id="play" aria-label="Play radar loop"></button><input type="range" id="rng" min="0" max="0" value="0" aria-label="Radar frame"><span id="rt">Loading radar…</span></div></section>
 </main>
 <footer>
- <p id="upd"></p>
- <p>Weather from <a href="https://open-meteo.com">Open-Meteo</a>. Alerts from the US National Weather Service. Radar from <a href="https://github.com/JoshuaKimsey/LibreWXR">LibreWXR</a>. Sectional chart, TFRs, airports and airspace from the <a href="https://www.faa.gov/uas">FAA</a>. Street map © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>.</p>
+ <p id="upd" role="status"></p>
+ <p>Weather from <a href="https://open-meteo.com">Open-Meteo</a>. Alerts from the US National Weather Service. Radar from <a href="https://github.com/JoshuaKimsey/LibreWXR">LibreWXR</a>. Sectional chart, TFRs, airports and airspace from the <a href="https://www.faa.gov/uas">FAA</a>. Park boundaries from the National Park Service. Maps © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> and Esri.</p>
  <p class="mob">Menu position <button class="adj" onclick="adj(-10)" aria-label="Move menu up">−</button> <span id="sv">0</span> <button class="adj" onclick="adj(10)" aria-label="Move menu down">+</button></p>
 </footer>
-<dialog id="dlg" aria-label="Choose a location"><label class="sr" for="q">Search for a city</label><input id="q" placeholder="Search for a city" autocomplete="off"><div id="res"></div>
+<dialog id="dlg" aria-label="Choose a location"><label for="q">Search for a city</label><input id="q" placeholder="For example, Denver" autocomplete="off"><div id="res" aria-live="polite"></div>
  <div class="act"><button onclick="gps()">Use my location</button><button onclick="dlg.close()">Close</button></div></dialog>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
@@ -227,7 +252,7 @@ const tf=t=>new Date(t).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}
 const tz=d=>d?d.toLocaleTimeString([], {timeZone:W.timezone,hour:'numeric',minute:'2-digit'}).toLowerCase():'not today';
 const dur=m=>Math.floor(m/36e5)+'h '+r0(m%36e5/6e4)+'m';
 const col=t=>`hsl(${Math.max(0,Math.min(220,(100-t)/70*220))},75%,52%)`;
-const kv=(k,v,note)=>`<div class="kv"><span>${k}</span><span class="v"><b>${v}</b>${note?` <small>${note}</small>`:''}</span></div>`;
+const kv=(k,v,note)=>`<div class="kv" role="listitem"><span>${k}</span><span class="v"><b>${v}</b>${note?` <small>${note}</small>`:''}</span></div>`;
 const FLY=['Good to fly','Use caution','Not recommended'];
 
 // Drone go/no-go. Units: mph, miles, inches, °F. Thresholds are the original Drone tab's.
@@ -245,7 +270,7 @@ function fly(x){
  console.assert(fly(ok).st==0&&fly({...ok,g:25}).st==1&&fly({...ok,ws:25}).st==2&&fly({...ok,vis:2.5}).st==2&&fly({...ok,pop:70}).st==1,'fly() self-check failed')}
 function flyAt(k,over){const h=W.hourly;return fly({ws:h.wind_speed_10m[k],g:h.wind_gusts_10m[k],w120:h.wind_speed_120m[k],vis:h.visibility[k]/1609.34,precip:h.precipitation[k],pop:h.precipitation_probability[k],temp:h.temperature_2m[k],dew:h.dew_point_2m[k],lowC:h.cloud_cover_low[k],day:h.is_day[k],...over})}
 
-const waiting=()=>{$('today').innerHTML=`<div class="msg">Loading weather for ${esc(loc.name)}…</div>`;$('hourly').innerHTML=$('dw').innerHTML=''};
+const waiting=()=>{$('today').innerHTML=`<div class="msg" role="status">Loading weather for ${esc(loc.name)}…</div>`;$('hourly').innerHTML=$('dw').innerHTML=''};
 async function load(){
  const l=loc;$('locName').textContent=loc.name;if(!W)waiting();
  const u='https://api.open-meteo.com/v1/forecast?latitude='+loc.lat+'&longitude='+loc.lon+
@@ -261,7 +286,7 @@ async function load(){
  if(l!==loc)return; // location changed while loading
  if(a.status!='fulfilled'||!a.value.current){
   if(W)$('upd').textContent='Could not refresh. Showing the forecast from the last update.';
-  else $('today').innerHTML=`<div class="msg">The forecast for ${esc(loc.name)} did not load. Check your connection, then try again.<br><button class="btn" onclick="load()">Reload forecast</button></div>`;
+  else $('today').innerHTML=`<div class="msg" role="alert">The forecast for ${esc(loc.name)} did not load. Check your connection, then try again.<br><button class="btn" onclick="load()">Reload forecast</button></div>`;
   return}
  W=a.value;AQ=b.status=='fulfilled'?b.value.current:null;
  AL=c.status=='fulfilled'&&c.value.features?c.value.features.map(x=>x.properties):[];
@@ -270,7 +295,8 @@ async function load(){
  try{SATS=countSats(loc.lat,loc.lon,t.value)}catch(e){SATS=null}
  I=Math.max(0,W.hourly.time.findIndex(x=>x>=W.current.time.slice(0,13)));
  T=Math.max(0,W.daily.time.indexOf(W.current.time.slice(0,10)));
- renderToday();renderHourly();renderDrone();loadAirspace();
+ renderToday();renderHourly();renderDrone();
+ if(pinFor!==loc){pinFor=loc;checkPin();if(amap)amap.setView(pin)} // the pin follows a new place, but a refresh leaves it where you put it
  $('h1').textContent='Weather for '+loc.name;$('upd').textContent='Updated '+tf(Date.now())+'.';
  if(map&&!mk.getLatLng().equals([loc.lat,loc.lon])){map.setView([loc.lat,loc.lon]);mk.setLatLng([loc.lat,loc.lon])} // recentre only when the place changed, not on every refresh
 }
@@ -291,7 +317,7 @@ function arc(a,b,now,sun){
  return `<svg viewBox="0 0 220 122" aria-hidden="true" style="width:100%"><path d="M15 106A95 95 0 0 1 205 106" fill="none" stroke="currentColor" stroke-opacity=".45" stroke-width="2" stroke-dasharray="2 6" stroke-linecap="round"/>${p>0?`<path d="M15 106A95 95 0 0 1 ${x} ${y}" fill="none" stroke="${c}" stroke-width="3" stroke-linecap="round"/>`:''}<path d="M2 106h216" stroke="currentColor" stroke-opacity=".45" stroke-width="2"/>${has?`<circle cx="${x}" cy="${y}" r="14" fill="${c}" opacity=".25"/><circle cx="${x}" cy="${y}" r="7.5" fill="${c}"/>`:''}</svg>`}
 function moon(){if(!window.SunCalc)return null;const dt=new Date(),mt=SunCalc.getMoonTimes(dt,loc.lat,loc.lon),p=SunCalc.getMoonIllumination(dt).phase;
  return {dt,rise:mt.rise,set:mt.set,name:p<.03||p>.97?'New moon':p<.22?'Waxing crescent':p<.28?'First quarter':p<.47?'Waxing gibbous':p<.53?'Full moon':p<.72?'Waning gibbous':p<.78?'Last quarter':'Waning crescent'}}
-const compass=(d,sz)=>`<svg viewBox="0 0 100 100" width="${sz}" height="${sz}" aria-hidden="true" style="flex:none"><circle cx="50" cy="50" r="46" fill="none" stroke="var(--ln)" stroke-width="2"/>${[0,30,60,90,120,150,180,210,240,270,300,330].map(a=>`<path d="M50 6v${a%90?4:7}" stroke="var(--mut)" stroke-width="${a%90?1:2}" transform="rotate(${a} 50 50)"/>`).join('')}<text x="50" y="26" font-size="11" font-weight="700" text-anchor="middle" fill="var(--mut)">N</text><g transform="rotate(${d+180} 50 50)"><path d="M50 22L61 54H54.5V78H45.5V54H39Z" fill="var(--acc)"/></g></svg>`;
+const compass=(d,sz)=>`<svg viewBox="0 0 100 100" width="${sz}" height="${sz}" aria-hidden="true" style="flex:none"><circle cx="50" cy="50" r="46" fill="none" stroke="var(--ln)" stroke-width="2"/>${[0,30,60,90,120,150,180,210,240,270,300,330].map(a=>`<path d="M50 6v${a%90?4:7}" stroke="var(--mut)" stroke-width="${a%90?1:2}" transform="rotate(${a} 50 50)"/>`).join('')}<text x="50" y="26" font-size="11" font-weight="700" text-anchor="middle" fill="var(--mut)">N</text><g transform="rotate(${d+180} 50 50)"><path d="M50 22L61 54H54.5V78H45.5V54H39Z" fill="var(--tx)"/></g></svg>`;
 
 function renderToday(){
  const c=W.current,h=W.hourly,d=W.daily,i=I,P=h.precipitation_probability,A=h.precipitation,now=new Date(c.time),[s1,s2]=sky();
@@ -310,12 +336,12 @@ function renderToday(){
  // 24h strip
  const N=24,temps=h.temperature_2m.slice(i,i+N),mn=Math.min(...temps),mx=Math.max(...temps),pts=temps.map((t,k)=>[k*64+32,96-(t-mn)/(mx-mn||1)*52]);
  let cols='',bars='',lab='';
- for(let k=0;k<N;k++){const j=i+k;cols+=`<div class="${k?'':'now'}">${k?hf(h.time[j]):'Now'}${wi(h.weather_code[j],h.is_day[j],26,1)}<em>${P[j]>=20?P[j]+'%':''}</em></div>`;
+ for(let k=0;k<N;k++){const j=i+k;cols+=`<div class="${k?'':'now'}">${k?hf(h.time[j]):'Now'}${wi(h.weather_code[j],h.is_day[j],26,1)}<span class="sr">${r0(temps[k])} degrees${P[j]>=20?', rain chance':''}</span><em>${P[j]>=20?P[j]+'%':''}</em></div>`;
   bars+=`<div><span><i style="height:${Math.min(100,A[j]/.25*100)}%"></i></span></div>`;lab+=`<div>${A[j]>0.004?A[j].toFixed(2)+'″':''}</div>`}
  // daily rows
  const days=d.time.map((_,k)=>k).slice(T),all=days.flatMap(k=>[d.temperature_2m_min[k],d.temperature_2m_max[k]]),gmn=Math.min(...all),gs=(Math.max(...all)-gmn)||1;
  const rows=days.map(k=>{const l=d.temperature_2m_min[k],hh=d.temperature_2m_max[k],dn=new Date(d.time[k]+'T12:00');
-  return `<div class="dr"><span class="d">${k==T?'Today':dn.toLocaleDateString([], {weekday:'short'})+' '+dn.getDate()}</span><span class="pp" title="Chance of rain">${DROP}${d.precipitation_probability_max[k]??0}%</span><span class="tx">${wi(d.weather_code[k],1,22,0)}<span>${WC(d.weather_code[k])[1]}</span></span><span class="l">${r0(l)}°</span><div class="rg"><i style="left:${(l-gmn)/gs*100}%;right:${100-(hh-gmn)/gs*100}%;background:linear-gradient(90deg,${col(l)},${col(hh)})"></i></div><span>${r0(hh)}°</span></div>`}).join('');
+  return `<div class="dr" role="listitem"><span class="d">${k==T?'Today':dn.toLocaleDateString([], {weekday:'short'})+' '+dn.getDate()}</span><span class="pp" title="Chance of rain"><span class="sr">Rain chance</span>${DROP}${d.precipitation_probability_max[k]??0}%</span><span class="tx">${wi(d.weather_code[k],1,22,0)}<span>${WC(d.weather_code[k])[1]}</span></span><span class="l"><span class="sr">Low</span>${r0(l)}°</span><div class="rg"><i style="left:${(l-gmn)/gs*100}%;right:${100-(hh-gmn)/gs*100}%;background:linear-gradient(90deg,${col(l)},${col(hh)})"></i></div><span><span class="sr">High</span>${r0(hh)}°</span></div>`}).join('');
  // right now
  const hum=c.relative_humidity_2m,uv=h.uv_index[i]||0,aq=AQ&&AQ.us_aqi!=null?AQ.us_aqi:null,vis=c.visibility/1609.34,dew=c.dew_point_2m,pr=c.pressure_msl*.02953,pr3=h.pressure_msl[Math.max(0,i-3)]*.02953;
  const tot=A.slice(i,i+24).reduce((a,b)=>a+b,0);
@@ -323,8 +349,8 @@ function renderToday(){
  <p class="lead">${out2} ${out1}</p>${al}
  <h2>Next 24 hours</h2>
  <div class="strip" tabindex="0" role="group" aria-label="Hourly temperature and rain, scrolls sideways"><div style="width:${N*64}px"><div class="cols">${cols}</div><svg width="${N*64}" height="112" aria-hidden="true"><path d="${pts.map((p,k)=>(k?'L':'M')+p[0]+' '+p[1]).join('')}" fill="none" stroke="var(--acc)" stroke-width="2.5" stroke-linejoin="round"/>${pts.map((p,k)=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="var(--acc)"/><text x="${p[0]}" y="${p[1]-12}" text-anchor="middle" font-size="14" font-weight="600" fill="currentColor">${r0(temps[k])}°</text>`).join('')}</svg><div class="bars">${bars}</div><div class="lab">${lab}</div></div></div>
- <h2>Next 10 days</h2><div class="p"><div class="list">${rows}</div></div>
- <h2>Right now</h2><div class="p"><div class="list cols2">
+ <h2>Next 10 days</h2><div class="p"><div class="list" role="list">${rows}</div></div>
+ <h2>Right now</h2><div class="p"><div class="list cols2" role="list">
  ${kv('Wind',r0(c.wind_speed_10m)+' mph '+dir(c.wind_direction_10m),'gusts '+r0(c.wind_gusts_10m))}
  ${kv('Humidity',hum+'%',hum<30?'Low':hum<60?'Comfortable':hum<80?'High':'Very high')}
  ${kv('Dew point',r0(dew)+'°',dew<55?'Dry':dew<65?'A bit humid':dew<70?'Muggy':'Oppressive')}
@@ -337,11 +363,14 @@ function renderToday(){
 }
 
 function renderHourly(){
- const h=W.hourly;let s='<h2>Next 48 hours</h2><div class="p"><div class="list"><div class="hr h"><span>Hour</span><span>Temp</span><span>Cloud</span><span>Wind, mph</span><span>Rain</span><span></span></div>';
+ // each day is a table for screen readers: the header row is visible on the first and read-only on the rest
+ const h=W.hourly,head=c=>`<div class="hr h${c}" role="row">${['Hour','Temp','Cloud','Wind, mph','Rain','<span class="sr">Drone rating</span>'].map(t=>`<span role="columnheader">${t}</span>`).join('')}</div>`,
+  open=(day,c)=>`<div class="p"><div class="list" role="table" aria-label="Hourly forecast, ${day}">${head(c)}`;
+ let s='<h2>Next 48 hours</h2>'+open('next hours','');
  for(let k=I;k<I+48&&k<h.time.length;k++){const cc=h.cloud_cover[k],p=h.precipitation_probability[k]??0,f=flyAt(k);
-  if(k>I&&h.time[k].endsWith('T00:00'))s+=`</div></div><h2>${new Date(h.time[k]).toLocaleDateString([], {weekday:'long'})}</h2><div class="p"><div class="list">`;
-  s+=`<div class="hr"><b>${hf(h.time[k])}</b><span class="tp">${wi(h.weather_code[k],h.is_day[k],22,1)}${r0(h.temperature_2m[k])}°</span><div>${cc}%<div class="bar"><i style="width:${cc}%"></i></div></div><div>${r0(h.wind_speed_10m[k])} ${dir(h.wind_direction_10m[k])}<small>gusts ${r0(h.wind_gusts_10m[k])}</small></div><div>${p}%${h.precipitation[k]>0.004?' · '+h.precipitation[k].toFixed(2)+'″':''}<div class="bar rn"><i style="width:${p}%"></i></div></div><i class="dot s${f.st}" role="img" aria-label="Drone: ${FLY[f.st]}" title="Drone: ${FLY[f.st]}"></i></div>`}
- $('hourly').innerHTML=s+'</div></div><p class="mut" style="margin:12px 2px 0">The dot on each row is the drone rating for that hour: green is good to fly, yellow is use caution, red is not recommended.</p>';
+  if(k>I&&h.time[k].endsWith('T00:00')){const day=new Date(h.time[k]).toLocaleDateString([], {weekday:'long'});s+=`</div></div><h2>${day}</h2>`+open(day,' sr')}
+  s+=`<div class="hr" role="row"><b role="cell">${hf(h.time[k])}</b><span class="tp" role="cell">${wi(h.weather_code[k],h.is_day[k],22,1)}${r0(h.temperature_2m[k])}°</span><div role="cell">${cc}%<div class="bar"><i style="width:${cc}%"></i></div></div><div role="cell">${r0(h.wind_speed_10m[k])} ${dir(h.wind_direction_10m[k])}<small>gusts ${r0(h.wind_gusts_10m[k])}</small></div><div role="cell">${p}%${h.precipitation[k]>0.004?' · '+h.precipitation[k].toFixed(2)+'″':''}<div class="bar rn"><i style="width:${p}%"></i></div></div><span role="cell"><i class="dot s${f.st}" role="img" aria-label="${FLY[f.st]}" title="Drone: ${FLY[f.st]}"></i></span></div>`}
+ $('hourly').innerHTML=s+'</div></div><p class="mut" style="margin:12px 2px 0">The mark on each row is the drone rating for that hour: a green circle is good to fly, a yellow triangle is use caution, a red square is not recommended.</p>';
 }
 
 function renderDrone(){
@@ -358,72 +387,106 @@ function renderDrone(){
  const winTxt=a<0?'No good daylight window in the next 24 hours':`Next good window: ${a==i?'now':hf(h.time[a])} to ${hf(h.time[b<0?Math.min(i+24,h.time.length-1):b])}`;
  const alt=[['33 ft',c.wind_speed_10m],['260 ft',h.wind_speed_80m[i]],['400 ft',h.wind_speed_120m[i]]],mxw=Math.max(30,...alt.map(x=>x[1]));
  $('dw').innerHTML=`<div class="status s${f.st}"><b>${FLY[f.st]}</b><span>${f.why.join('. ')||'Wind, visibility, cloud and rain are all within limits'}.</span></div>
- <h2>${winTxt}</h2><div class="p" style="padding-bottom:12px"><div class="win" role="img" aria-label="${winTxt}">${win}</div><small>One bar per hour. Faded bars are night.</small></div>
+ <h2>${winTxt}</h2><div class="p" style="padding-bottom:12px"><div class="win" role="img" aria-label="${winTxt}">${win}</div><small style="white-space:normal">One bar per hour. A tall green bar is good to fly, a medium yellow bar is use caution, a short red bar is not recommended. Faded bars are night.</small></div>
  <div class="two"><div><h2>Wind</h2><div class="p"><div class="compass">${compass(c.wind_direction_10m,112)}<div><div class="big">${r0(c.wind_speed_10m)} mph</div><div class="mut" style="margin-top:6px">From ${dir(c.wind_direction_10m)} (${r0(c.wind_direction_10m)}°), gusts ${r0(c.wind_gusts_10m)} mph</div></div></div>
- <div class="list">${alt.map(([l,v])=>`<div class="ab"><span>${l}</span><div class="bar"><i style="width:${v/mxw*100}%"></i></div><b>${r0(v)} mph</b></div>`).join('')}</div></div></div>
- <div><h2>Part 107 weather limits</h2><div class="p"><div class="list">
+ <div class="list" role="list">${alt.map(([l,v])=>`<div class="ab" role="listitem"><span>${l}</span><div class="bar"><i style="width:${v/mxw*100}%"></i></div><b>${r0(v)} mph</b></div>`).join('')}</div></div></div>
+ <div><h2>Part 107 weather limits</h2><div class="p"><div class="list" role="list">
  ${kv('Visibility, 3 mi minimum',tone(vis.toFixed(1)+' mi',vis<3?2:0),vis<3?'below minimum':'')}
  ${kv('Cloud, stay 500 ft below',tone(!f.ceil?'No low cloud':room>=400?'400 ft usable':room>0?'Stay below '+room+' ft':'Ceiling too low',!f.ceil||room>=400?0:room>0?1:2),f.ceil?'ceiling '+ceilTxt.toLowerCase()+', estimate':'')}
  ${kv('Light',tone(['Daylight','Civil twilight','Night'][light],light?1:0),light==0?'sunset '+tf(ss):light==1?'anti-collision light required':'light and night training required')}
  ${kv('Cloud cover',c.cloud_cover+'%')}
  ${kv('GPS satellites',SATS==null?'Unavailable':tone(SATS+' in view',SATS>=8?0:SATS>=6?1:2))}
- ${kv('Kp index',KP==null?'Unavailable':tone(KP.toFixed(1),KP<4?0:KP<5?1:2),KP==null?'':KP<4?'Good':KP<5?'Fair':KP<7?'Degraded':'Poor')}</div></div></div></div>
- <h2>Airspace here</h2><div class="p" id="air"><p class="mut" style="margin:12px 0">Checking FAA airspace data for ${esc(loc.name)}…</p></div>
- <p class="mut" style="margin:12px 2px 0;max-width:70em">Part 107 also limits you to 400 ft above the ground (or within 400 ft of a structure), 100 mph, and keeping the aircraft in sight. Winds at 260 and 400 ft are model estimates. Cloud ceiling is estimated from the gap between temperature and dew point (about 227 ft per °F) and only when low cloud covers 30% or more; it is not a measured ceiling. GPS satellites is a prediction of satellites more than 10° above your horizon, not what your drone has locked. The airspace rows come from FAA data and do not replace an authorization.</p>`;
+ ${kv('Kp index',KP==null?'Unavailable':tone(KP.toFixed(1),KP<4?0:KP<5?1:2),KP==null?'':KP<4?'Good':KP<5?'Fair':KP<7?'Degraded':'Poor')}</div></div></div></div> <p class="mut" style="margin:12px 2px 0;max-width:70em">Part 107 also limits you to 400 ft above the ground (or within 400 ft of a structure), 100 mph, and keeping the aircraft in sight. Winds at 260 and 400 ft are model estimates. Cloud ceiling is estimated from the gap between temperature and dew point (about 227 ft per °F) and only when low cloud covers 30% or more; it is not a measured ceiling. GPS satellites is a prediction of satellites more than 10° above your horizon, not what your drone has locked.</p>`;
 }
 // status dot plus text: colour is never the only signal, and white text keeps its contrast on every sky
-const tone=(t,s)=>`<i class="dot s${s}"></i>${t}`;
+const tone=(t,s)=>`<i class="dot s${s}" aria-hidden="true"></i>${t}`;
 
 // FAA open data (US only). A point or box query against one of the FAA's public map services.
 const FAA='https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/arcgis/rest/services/';
-const faaq=(svc,geo,fields,n=50)=>fetch(FAA+svc+'/FeatureServer/0/query?where=1%3D1&'+geo+'&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields='+fields+'&resultRecordCount='+n+'&f=geojson').then(r=>r.json()).then(j=>{if(!j.features)throw 0;return j.features});
 const box=(w,s,e,n)=>'geometryType=esriGeometryEnvelope&geometry='+[w,s,e,n].join(',');
-// nautical miles and compass bearing from the current location
-function nm(lat,lon){const R=Math.PI/180,x=(lon-loc.lon)*R*Math.cos(loc.lat*R),y=(lat-loc.lat)*R;return [Math.hypot(x,y)*3440.07,dir((Math.atan2(x,y)/R+360)%360)]}
-async function loadAirspace(){
- const l=loc,pt='geometryType=esriGeometryPoint&geometry='+loc.lon+','+loc.lat;
- try{
-  const [cls,grid,apts]=await Promise.all([faaq('Class_Airspace',pt,'NAME,CLASS,LOCAL_TYPE,LOWER_VAL'),faaq('FAA_UAS_FacilityMap_Data',pt,'CEILING,APT1_FAAID,APT1_LAANC'),faaq('US_Airport',box(loc.lon-.2,loc.lat-.17,loc.lon+.2,loc.lat+.17),'IDENT,NAME',200)]);
-  if(l!==loc||!$('air'))return;
-  // surface areas of Class B, C, D and E2 need authorization (107.41); shelves that start above the ground do not
-  const sfc=cls.map(x=>x.properties).find(p=>(/^[BCD]$/.test(p.CLASS)&&!p.LOWER_VAL)||p.LOCAL_TYPE=='CLASS_E2'),g=grid[0]&&grid[0].properties;
-  const near=apts.map(a=>({...a.properties,d:nm(a.geometry.coordinates[1],a.geometry.coordinates[0])})).sort((a,b)=>a.d[0]-b.d[0])[0];
-  $('air').innerHTML=`<div class="list">
-  ${kv('Airspace at the surface',tone(sfc?'Class '+sfc.CLASS:'Uncontrolled (Class G)',sfc?1:0),sfc?'authorization required':'no authorization needed')}
-  ${kv('LAANC altitude grid',g?tone(g.CEILING+' ft',g.CEILING>=400?0:g.CEILING>0?1:2):'None here',g?esc(g.APT1_FAAID)+(g.APT1_LAANC?', LAANC available':', request in FAADroneZone'):'')}
-  ${kv('Nearest airport or heliport',near?esc(near.NAME)+' ('+esc(near.IDENT)+')':'None within 10 nm',near?near.d[0].toFixed(1)+' nm '+near.d[1]:'')}
-  ${kv('Flight restrictions (TFRs)','<a href="#radar">Check the map</a>','not checked automatically')}</div>`;
- }catch(e){if(l===loc&&$('air'))$('air').innerHTML='<p style="margin:12px 0">FAA airspace data did not load. The FAA server is shared and is sometimes busy for a minute. Until it loads, check the sectional chart on the <a href="#radar">Map</a> tab.<br><button class="reset" onclick="loadAirspace()">Check airspace again</button></p>'}
+// nautical miles and compass bearing from the pin
+function nm(lat,lon){const R=Math.PI/180,x=(lon-pin.lng)*R*Math.cos(pin.lat*R),y=(lat-pin.lat)*R;return [Math.hypot(x,y)*3440.07,dir((Math.atan2(x,y)/R+360)%360)]}
+// Airspace layers, drawn on the Drone map and checked against the pin. Colours follow the usual drone-map scheme:
+// blue controlled airspace, red restricted, orange national security, yellow FRIA outline, olive national parks.
+// adv() returns [title, what to do, severity]: 0 information, 1 caution, 2 do not fly without permission.
+const svc=s=>FAA+s+'/FeatureServer/0',SUA={R:'Restricted area',P:'Prohibited area',W:'Warning area',A:'Alert area',MOA:'Military operations area'};
+const mil=(p,part)=>['National security restriction: '+p.Base,(part?'Part-time restriction. ':'')+'No drone flights from '+String(p.Floor).toLowerCase()+' to '+p.Ceiling+' without permission from the facility.',2];
+const AIR=[
+ {n:'National park',u:'https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/NPS_Land_Resources_Division_Boundary_and_Tract_Data_Service/FeatureServer/2',f:'UNIT_NAME',z:7,c:'#a8931a',o:.3,
+  adv:p=>[p.UNIT_NAME,'National Park Service land. Launching, landing or flying a drone here needs a permit from the park.',1]},
+ // only surface areas need authorization (107.41); shelves that start above the ground are left out
+ {n:'Controlled airspace',u:svc('Class_Airspace'),w:"(CLASS IN ('B','C','D') AND (LOWER_VAL=0 OR LOWER_VAL IS NULL)) OR LOCAL_TYPE='CLASS_E2'",f:'NAME,CLASS',z:7,c:'#2f8fe8',o:.2,
+  adv:p=>[p.NAME,'Class '+p.CLASS+' down to the surface. Get authorization through LAANC or FAADroneZone before you fly.',1]},
+ {n:'LAANC altitude grid',u:svc('FAA_UAS_FacilityMap_Data'),f:'CEILING,APT1_FAAID,APT1_LAANC',z:10,max:2000,c:'#1f6fb8',o:.05,
+  adv:p=>['UAS Facility Map: '+p.CEILING+' ft','The highest altitude the FAA will authorize here without further review'+(p.APT1_FAAID?' ('+p.APT1_FAAID+(p.APT1_LAANC?', LAANC available':', request in FAADroneZone')+')':'')+'.',p.CEILING?1:2]},
+ {n:'Restricted airspace',u:svc('Special_Use_Airspace'),w:"LOWER_VAL='0'",f:'NAME,TYPE_CODE,TIMESOFUSE',z:6,c:'#d6453d',o:.3,
+  adv:p=>[p.NAME,(SUA[p.TYPE_CODE]||'Special use airspace')+' from the surface. Times of use: '+String(p.TIMESOFUSE||'not published').toLowerCase()+'.',/^[RP]$/.test(p.TYPE_CODE)?2:1]},
+ {n:'National security',u:svc('DoD_Mar_13'),f:'Base,Floor,Ceiling',z:7,c:'#e8632b',o:.35,adv:p=>mil(p)},
+ {n:'National security, part-time',u:svc('Part_Time_National_Security_UAS_Flight_Restrictions'),f:'Base,Floor,Ceiling',z:7,c:'#e8632b',o:.15,adv:p=>mil(p,1)},
+ {n:'FRIA',u:svc('FAA_Recognized_Identification_Areas'),f:'title',z:9,c:'#d9a400',o:0,
+  adv:p=>['FRIA: '+p.title,'You may fly without Remote ID only while both you and the drone stay inside this area.',0]}],
+ APT={u:svc('US_Airport'),f:'IDENT,NAME,TYPE_CODE,ELEVATION',z:9,max:500};
+const aq=(a,geo,n,extra='')=>fetch(a.u+'/query?where='+encodeURIComponent(a.w||'1=1')+'&'+geo+'&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields='+a.f+'&resultRecordCount='+n+extra+'&f=geojson').then(r=>r.json()).then(j=>{if(!j.features)throw 0;return j.features});
+
+// The pin starts on the chosen place; tapping the airspace map moves it. Every layer is asked what covers that point.
+let pin,pinFor,pinSeq=0,amap,pinMk;
+async function checkPin(p){
+ pin=p||{lat:loc.lat,lng:loc.lon};const me=++pinSeq,pos=pin.lat.toFixed(4)+', '+pin.lng.toFixed(4);
+ if(pinMk)pinMk.setLatLng(pin);
+ $('air').innerHTML=`<p class="mut" style="margin:12px 0">Checking airspace at ${pos}…</p>`;
+ const res=await Promise.allSettled([...AIR.map(a=>aq(a,'geometryType=esriGeometryPoint&geometry='+pin.lng+','+pin.lat,20,'&returnGeometry=false')),aq(APT,box(pin.lng-.2,pin.lat-.17,pin.lng+.2,pin.lat+.17),200)]);
+ if(me!==pinSeq)return;
+ const ok=k=>res[k].status=='fulfilled',lost=res.filter(r=>r.status!='fulfilled').length,again='<button class="reset" onclick="checkPin(pin)">Check this spot again</button>';
+ if(lost==res.length){$('air').innerHTML=`<p style="margin:12px 0">Airspace data for ${pos} did not load. The FAA server is shared and is sometimes busy for a minute. Until it loads, read the sectional chart on the map.<br>${again}</p>`;return}
+ const adv=AIR.flatMap((a,k)=>ok(k)?res[k].value.map(f=>a.adv(f.properties)):[]).sort((x,y)=>y[2]-x[2]),free=ok(1)&&ok(2)&&!adv.some(x=>x[2]); // say "uncontrolled" only when nothing here asks for caution
+ const near=ok(AIR.length)&&res[AIR.length].value.map(f=>({...f.properties,d:nm(f.geometry.coordinates[1],f.geometry.coordinates[0])})).sort((x,y)=>x.d[0]-y.d[0])[0];
+ const item=([t,d,s])=>`<div class="adv" role="listitem"><i class="dot s${s||'i'}" role="img" aria-label="${['Information','Caution','Restricted'][s]}"></i><div><b>${esc(t)}</b><small>${esc(d)}</small></div></div>`;
+ $('air').innerHTML=`<div class="list" role="list">${kv('Pin at '+pos,adv.length?tone(adv.length+(adv.length>1?' advisories':' advisory'),adv[0][2]||'i'):tone('No advisories',0))}
+ ${adv.map(item).join('')}${free?`<div class="adv" role="listitem"><i class="dot s0" role="img" aria-label="Clear"></i><div><b>Uncontrolled airspace (Class G) at the surface</b><small>No airspace authorization is needed here.</small></div></div>`:''}
+ ${kv('Nearest airport or heliport',near?esc(near.NAME)+' ('+esc(near.IDENT)+')':ok(AIR.length)?'None within 10 nm':'Unavailable',near?near.d[0].toFixed(1)+' nm '+near.d[1]:'')}</div>
+ <p class="mut" style="margin:10px 0">TFRs are not checked for the pin. They show as grey areas on the map; confirm at <a href="https://tfr.faa.gov">tfr.faa.gov</a>.${lost?' Some layers did not load, so this list may be incomplete.':''}</p>${lost?again:''}`;
+}
+function initAir(){
+ if(amap){amap.invalidateSize();return}
+ const phone=L.Browser.mobile; // on phones one finger scrolls the page, so the map moves with two
+ amap=L.map('amap',{fadeAnimation:false,markerZoomAnimation:false,dragging:!phone}).setView(pin||[loc.lat,loc.lon],11);
+ // plain grey base so the airspace colours carry the map; place names are a second tile layer drawn above it
+ const esri=n=>L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_'+n+'/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:16,maxZoom:18,attribution:'Base map: Esri'});
+ const light=L.layerGroup([esri('Base'),esri('Reference')]).addTo(amap);
+ // The FAA publishes the sectional for zoom 8 to 12. TFRs come as images because the FAA server does not allow data requests from other sites.
+ const sect=L.tileLayer('https://tiles.arcgis.com/tiles/ssFJjBXIUyZDrSYZ/arcgis/rest/services/VFR_Sectional/MapServer/tile/{z}/{y}/{x}',{minZoom:6,minNativeZoom:8,maxNativeZoom:12,maxZoom:18,keepBuffer:1,attribution:'Sectional chart: FAA'});
+ const tfr=L.tileLayer.wms('https://tfr.faa.gov/geoserver/TFR/wms',{layers:'TFR:V_TFR_LOC',format:'image/png',transparent:true,opacity:.45,zIndex:6,attribution:'TFRs: FAA'}).addTo(amap);
+ APT.layer=L.geoJSON(null,{pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:f.properties.TYPE_CODE=='AD'?6:4,color:'#fff',weight:1.5,fillColor:'#c2185b',fillOpacity:1}),
+  onEachFeature:(f,l)=>l.bindPopup(`<b>${esc(f.properties.NAME)}</b> (${esc(f.properties.IDENT)})<br>${f.properties.TYPE_CODE=='HP'?'Heliport':f.properties.TYPE_CODE=='AD'?'Airport':'Landing site'}, elevation ${r0(f.properties.ELEVATION)} ft`)}).addTo(amap);
+ const over={'TFRs':tfr,'Airports and heliports':APT.layer};
+ AIR.forEach(a=>{over[a.n]=a.layer=L.geoJSON(null,{interactive:false,
+  style:f=>{const zero=f.properties.CEILING===0;return {color:a.c,weight:a.o?1:2.5,fillColor:zero?'#d6453d':a.c,fillOpacity:zero?.3:a.o}},
+  onEachFeature:(f,l)=>{if(f.properties.CEILING!=null&&amap.getZoom()>=13)l.bindTooltip(''+f.properties.CEILING,{permanent:true,direction:'center',className:'gl'})}}).addTo(amap)});
+ L.control.layers({'Airspace map':light,'Sectional chart':sect},over).addTo(amap);
+ // each layer is fetched for the area on screen, simplified to the current zoom, and only when zoomed in enough to be useful
+ let seq=0;
+ async function fill(){const me=++seq,b=amap.getBounds(),e=box(b.getWest(),b.getSouth(),b.getEast(),b.getNorth()),z=amap.getZoom(),tol='&geometryPrecision=5&maxAllowableOffset='+(360/2**(z+8)).toFixed(6);let bad=0,hid=0;
+  await Promise.all([...AIR,APT].map(async a=>{if(!amap.hasLayer(a.layer))return;if(z<a.z){a.layer.clearLayers();hid++;return}
+   try{const f=await aq(a,e,a.max||300,tol);if(me===seq)a.layer.clearLayers().addData(f)}catch(x){bad++}}));
+  if(me===seq)$('ms').textContent=bad?'Some FAA layers did not load. Move the map to try again.':(hid?'Zoom in to see every layer. ':'')+(phone?'Tap to move the pin. Use two fingers to move the map.':'Click the map to move the pin and check that spot.')}
+ amap.on('moveend overlayadd',fill);fill();
+ pinMk=L.marker(pin||[loc.lat,loc.lon],{alt:'Pin',keyboard:false}).addTo(amap);
+ amap.on('click',e=>checkPin(e.latlng));
 }
 
 async function initRadar(){
  if(map){map.invalidateSize();return}
- map=L.map('map',{fadeAnimation:false,markerZoomAnimation:false}).setView([loc.lat,loc.lon],10);
- const osm=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,keepBuffer:1,updateWhenZooming:false,referrerPolicy:'origin',attribution:'© OpenStreetMap'});let er=0;
- osm.on('tileerror',()=>{if(++er==3&&map.hasLayer(osm)){map.removeLayer(osm);L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',{maxZoom:18,keepBuffer:1,updateWhenZooming:false,subdomains:'abcd',attribution:'© OpenStreetMap contributors © CARTO'}).addTo(map).bringToBack()}});
- // FAA layers. The sectional is published for zoom 8 to 12; TFRs come as images because the FAA server does not allow data requests from other sites.
- const sect=L.tileLayer('https://tiles.arcgis.com/tiles/ssFJjBXIUyZDrSYZ/arcgis/rest/services/VFR_Sectional/MapServer/tile/{z}/{y}/{x}',{minZoom:6,minNativeZoom:8,maxNativeZoom:12,maxZoom:18,keepBuffer:1,attribution:'Sectional chart: FAA'}).addTo(map);
- const tfr=L.tileLayer.wms('https://tfr.faa.gov/geoserver/TFR/wms',{layers:'TFR:V_TFR_LOC',format:'image/png',transparent:true,opacity:.45,zIndex:6,attribution:'TFRs: FAA'}).addTo(map);
- const apt=L.geoJSON(null,{pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:6,color:'#fff',weight:2,fillColor:'#15191c',fillOpacity:1}),
-  onEachFeature:(f,l)=>l.bindPopup(`<b>${esc(f.properties.NAME)}</b> (${esc(f.properties.IDENT)})<br>Elevation ${r0(f.properties.ELEVATION)} ft${f.properties.PRIVATEUSE?'<br>Private use':''}`)}).addTo(map);
- const grid=L.geoJSON(null,{style:f=>({color:f.properties.CEILING>=400?'#1a7f37':f.properties.CEILING>0?'#b07a00':'#c5302a',weight:1,fillOpacity:.3}),
-  onEachFeature:(f,l)=>l.bindPopup(`<b>LAANC ceiling ${f.properties.CEILING} ft</b><br>${esc(f.properties.APT1_FAAID)}${f.properties.APT1_LAANC?', LAANC available':', request in FAADroneZone'}`)});
- const over={'TFRs':tfr,'Airports':apt,'Drone altitude grid':grid},lc=L.control.layers({'Sectional chart':sect,'Street map':osm},over).addTo(map);
- // airports and the altitude grid are fetched for the area on screen, and only when zoomed in enough to be useful
- async function fill(){const b=map.getBounds(),e=box(b.getWest(),b.getSouth(),b.getEast(),b.getNorth()),z=map.getZoom();let msg='';
-  try{if(map.hasLayer(apt)){if(z>=9)apt.clearLayers().addData(await faaq('US_Airport',e,'IDENT,NAME,ELEVATION,PRIVATEUSE',500));else{apt.clearLayers();msg='Zoom in to see airport markers.'}}
-   if(map.hasLayer(grid)){if(z>=10)grid.clearLayers().addData(await faaq('FAA_UAS_FacilityMap_Data',e,'CEILING,APT1_FAAID,APT1_LAANC',2000));else{grid.clearLayers();msg='Zoom in to see the drone altitude grid.'}}
-  }catch(x){msg='FAA airport and grid data did not load. Move the map to try again.'}
-  $('ms').textContent=msg||'Grey areas with a black outline are active TFRs. Tap an airport dot or a grid square for details, and confirm TFRs at tfr.faa.gov before you fly.'}
- map.on('moveend overlayadd overlayremove',fill);fill();
- mk=L.marker([loc.lat,loc.lon]).addTo(map);
+ map=L.map('map',{fadeAnimation:false,markerZoomAnimation:false}).setView([loc.lat,loc.lon],8);
+ const osm=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,keepBuffer:1,updateWhenZooming:false,referrerPolicy:'origin',attribution:'© OpenStreetMap'}).addTo(map);let er=0;
+ osm.on('tileerror',()=>{if(++er==3&&map.hasLayer(osm)){map.removeLayer(osm);L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',{maxZoom:18,keepBuffer:1,updateWhenZooming:false,attribution:'Street map: Esri'}).addTo(map).bringToBack()}});
+ mk=L.marker([loc.lat,loc.lon],{alt:'Your location',keyboard:false}).addTo(map);
  try{const j=await fetch(LW+'/public/weather-maps.json').then(r=>r.json()),host=j.host||LW;
   frames=[...(j.radar.past||[]),...(j.radar.nowcast||[])];frames.forEach(f=>f.u=host+f.path+'/256/{z}/{x}/{y}/4/1_1.png');
   fi=Math.max(0,(j.radar.past||[]).length-1);rl=L.tileLayer(frames[fi].u,{opacity:.75,maxNativeZoom:10,maxZoom:18,zIndex:5,keepBuffer:0,updateWhenZooming:false,updateWhenIdle:true}).addTo(map);
-  map.on('zoomstart',()=>{if(timer)$('play').click()});$('rng').max=frames.length-1;showF(fi);lc.addOverlay(rl,'Rain radar');
+  map.on('zoomstart',()=>{if(timer)$('play').click()});$('rng').max=frames.length-1;showF(fi);
  }catch(e){$('rt').textContent='Radar did not load';$('play').disabled=$('rng').disabled=true}
 }
-function showF(n){if(!rl)return;fi=n;rl.setUrl(frames[n].u);$('rng').value=n;$('rt').textContent=tf(frames[n].time*1000)+(frames[n].time>Date.now()/1000?' (forecast)':'')}
+function showF(n){if(!rl)return;fi=n;rl.setUrl(frames[n].u);$('rng').value=n;$('rt').textContent=tf(frames[n].time*1000)+(frames[n].time>Date.now()/1000?' (forecast)':'');$('rng').setAttribute('aria-valuetext',$('rt').textContent)}
 function playing(on){$('play').innerHTML=on?PAUSE:PLAY;$('play').setAttribute('aria-label',on?'Pause radar loop':'Play radar loop')}
 $('play').onclick=()=>{if(timer){clearInterval(timer);timer=null;playing(0)}else if(rl){playing(1);timer=setInterval(()=>showF((fi+1)%frames.length),600)}};
 $('rng').oninput=e=>showF(+e.target.value);playing(0);
@@ -431,8 +494,10 @@ $('rng').oninput=e=>showF(+e.target.value);playing(0);
 // tabs: the URL hash holds the open tab, so Back and bookmarks work. The map tab keeps its old "radar" hash.
 const TABS=['today','hourly','drone','radar'];
 function show(t){if(!TABS.includes(t))t='today';
- document.querySelectorAll('nav button').forEach(b=>{const on=b.dataset.t==t;b.classList.toggle('on',on);on?b.setAttribute('aria-current','page'):b.removeAttribute('aria-current')});
- TABS.forEach(x=>$(x).classList.toggle('on',x==t));if(t=='radar')initRadar();window.scrollTo(0,0)}
+ document.querySelectorAll('nav button').forEach(b=>{const on=b.dataset.t==t;b.classList.toggle('on',on);on?b.setAttribute('aria-current','page'):b.removeAttribute('aria-current');if(on)document.title=b.textContent+' | Weather'});
+ TABS.forEach(x=>$(x).classList.toggle('on',x==t));if(t=='radar')initRadar();if(t=='drone')initAir();window.scrollTo(0,0)}
+// colour key for the airspace map, built from the same table that draws it
+$('key').innerHTML=AIR.filter(a=>!/part-time/.test(a.n)).map(a=>`<span><i style="${a.o?'background:'+a.c:'border:2px solid '+a.c}"></i>${a.n}</span>`).join('')+'<span><i style="background:#8a8a8a;border:1px solid #111"></i>TFR</span><span><i style="background:#c2185b;border-radius:50%"></i>Airport or heliport</span>';
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>location.hash=b.dataset.t);
 onhashchange=()=>show(location.hash.slice(1));show(location.hash.slice(1));
 
@@ -455,5 +520,6 @@ let STR=+store('stretch')||0;
 function adj(n){STR=Math.max(-40,Math.min(120,STR+n));store('stretch',STR);applyStr()}
 function applyStr(){document.documentElement.style.setProperty('--stretch',STR+'px');$('sv').textContent=STR}
 applyStr();
-load();setInterval(load,600000);
+// refresh every 10 minutes, but not while someone is reading an open alert or has keyboard focus in the forecast: a redraw would close it and drop their place
+load();setInterval(()=>{if(!document.querySelector('#today :focus,#hourly :focus,#dw :focus,details[open]'))load()},600000);
 </script></body></html>
