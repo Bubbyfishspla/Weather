@@ -116,7 +116,7 @@ i.s0{background:var(--ok)}i.s1{background:var(--warn)}i.s2{background:var(--bad)
 .key span{display:inline-flex;align-items:center;gap:6px}.key i{width:12px;height:12px;border-radius:3px;flex:none}
 .adv{display:flex;gap:10px;padding:12px 0}.adv .dot{flex:none;margin-top:6px}.adv b,.adv small{display:block}
 i.si{background:var(--lo)}
-.gl{background:none;border:0;box-shadow:none;padding:0;font-weight:700;font-size:11px;color:#15191c}.gl::before{display:none}
+.gl{background:none;border:0;box-shadow:none;padding:0;font-weight:700;font-size:10px;color:#15191c;text-shadow:0 0 2px #fff,0 0 2px #fff}.gl::before{display:none}.gl.b{font-size:13px} /* white halo keeps the number readable on the sectional too */
 /* Drone: one status block. The status colour is the only large colour block on the page. */
 .status{border-radius:var(--r);padding:22px 20px;color:#fff;margin-top:12px}
 .status b{display:block;font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
@@ -415,9 +415,9 @@ const AIR=[
  {n:'National park',u:'https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/NPS_Land_Resources_Division_Boundary_and_Tract_Data_Service/FeatureServer/2',f:'UNIT_NAME',z:7,c:'#a8931a',o:.3,
   adv:p=>[p.UNIT_NAME,'National Park Service land. Launching, landing or flying a drone here needs a permit from the park.',1]},
  // only surface areas need authorization (107.41); shelves that start above the ground are left out
- {n:'Controlled airspace',u:svc('Class_Airspace'),w:"(CLASS IN ('B','C','D') AND (LOWER_VAL=0 OR LOWER_VAL IS NULL)) OR LOCAL_TYPE='CLASS_E2'",f:'NAME,CLASS',z:7,c:'#2f8fe8',o:.2,
+ {n:'Controlled airspace',u:svc('Class_Airspace'),w:"(CLASS IN ('B','C','D') AND (LOWER_VAL=0 OR LOWER_VAL IS NULL)) OR LOCAL_TYPE='CLASS_E2'",f:'NAME,CLASS',z:7,c:'#2f8fe8',o:.08,line:2,/* light fill and a firm outline, so the grid colours inside stay true */
   adv:p=>[p.NAME,'Class '+p.CLASS+' down to the surface. Get authorization through LAANC or FAADroneZone before you fly.',1]},
- {n:'LAANC altitude grid',u:svc('FAA_UAS_FacilityMap_Data'),f:'CEILING,APT1_FAAID,APT1_LAANC',z:11,max:2000,/* from zoom 11 a screen holds under 2,000 cells even over a big city */c:'#1f6fb8',o:.05,
+ {n:'LAANC altitude grid',u:svc('FAA_UAS_FacilityMap_Data'),f:'CEILING,APT1_FAAID,APT1_LAANC',z:11,max:2000,/* from zoom 11 a screen holds under 2,000 cells even over a big city */
   adv:p=>['UAS Facility Map: '+p.CEILING+' ft','The highest altitude the FAA will authorize here without further review'+(p.APT1_FAAID?' ('+p.APT1_FAAID+(p.APT1_LAANC?', LAANC available':', request in FAADroneZone')+')':'')+'.',p.CEILING?1:2]},
  {n:'Restricted airspace',u:svc('Special_Use_Airspace'),w:"LOWER_VAL='0'",f:'NAME,TYPE_CODE,TIMESOFUSE',z:6,c:'#d6453d',o:.3,
   adv:p=>[p.NAME,(SUA[p.TYPE_CODE]||'Special use airspace')+' from the surface. Times of use: '+String(p.TIMESOFUSE||'not published').toLowerCase()+'.',/^[RP]$/.test(p.TYPE_CODE)?2:1]},
@@ -426,10 +426,12 @@ const AIR=[
  {n:'FRIA',u:svc('FAA_Recognized_Identification_Areas'),f:'title',z:9,c:'#d9a400',o:0,
   adv:p=>['FRIA: '+p.title,'You may fly without Remote ID only while both you and the drone stay inside this area.',0]}],
  APT={u:svc('US_Airport'),f:'IDENT,NAME,TYPE_CODE,ELEVATION',z:9,max:500};
+// LAANC ceiling to colour: red means no automatic approval, green means the full 400 ft; the number is printed on each cell when zoomed in
+const gridCol=c=>c>=400?'#2e9e4f':c>=300?'#8cbf3f':c>=200?'#e6c229':c>=100?'#f08a24':c>0?'#e25a2c':'#c62f2f';
 const aq=(a,geo,n,extra='')=>fetch(a.u+'/query?where='+encodeURIComponent(a.w||'1=1')+'&'+geo+'&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields='+a.f+'&resultRecordCount='+n+extra+'&f=geojson').then(r=>r.json()).then(j=>{if(!j.features)throw 0;return j.features});
 
 // The pin starts on the chosen place; tapping the airspace map moves it. Every layer is asked what covers that point.
-let pin,pinFor,pinSeq=0,amap,pinMk;
+let pin,pinFor,pinSeq=0,amap,pinMk,chart=false; // chart: the sectional is the base map
 async function checkPin(p){
  pin=p||{lat:loc.lat,lng:loc.lon};const me=++pinSeq,pos=pin.lat.toFixed(4)+', '+pin.lng.toFixed(4);
  if(pinMk)pinMk.setLatLng(pin);
@@ -459,8 +461,9 @@ function initAir(){
   onEachFeature:(f,l)=>l.bindPopup(`<b>${esc(f.properties.NAME)}</b> (${esc(f.properties.IDENT)})<br>${f.properties.TYPE_CODE=='HP'?'Heliport':f.properties.TYPE_CODE=='AD'?'Airport':'Landing site'}, elevation ${r0(f.properties.ELEVATION)} ft`)}).addTo(amap);
  const over={'TFRs':tfr,'Airports and heliports':APT.layer};
  AIR.forEach(a=>{over[a.n]=a.layer=L.geoJSON(null,{interactive:false,
-  style:f=>{const zero=f.properties.CEILING===0;return {color:a.c,weight:a.o?1:2.5,fillColor:zero?'#d6453d':a.c,fillOpacity:zero?.3:a.o}},
-  onEachFeature:(f,l)=>{if(f.properties.CEILING!=null&&amap.getZoom()>=13)l.bindTooltip(''+f.properties.CEILING,{permanent:true,direction:'center',className:'gl'})}}).addTo(amap)});
+  // grid cells are tiles coloured by ceiling with a thin white seam; every other layer is one colour
+  style:f=>{const c=f.properties.CEILING;return c==null?{color:a.c,weight:a.line||(a.o?1:2.5),fillColor:a.c,fillOpacity:a.o}:{color:'#fff',opacity:.9,weight:1,fillColor:gridCol(c),fillOpacity:chart?.35:.72}}, // lighter over the sectional, so the chart stays readable
+  onEachFeature:(f,l)=>{if(f.properties.CEILING!=null&&amap.getZoom()>=12)l.bindTooltip(''+f.properties.CEILING,{permanent:true,direction:'center',className:amap.getZoom()>=13?'gl b':'gl'})}}).addTo(amap)});
  L.control.layers({'Airspace map':light,'Sectional chart':sect},over).addTo(amap);
  // each layer is fetched for the area on screen, simplified to the current zoom, and only when zoomed in enough to be useful
  let seq=0;
@@ -469,6 +472,8 @@ function initAir(){
    try{const f=await aq(a,e,a.max||300,tol);if(me===seq)a.layer.clearLayers().addData(f)}catch(x){bad++}}));
   if(me===seq)$('ms').textContent=bad?'Some FAA layers did not load. Move the map to try again.':(hid?'Zoom in to see every layer. ':'')+(L.Browser.mobile?'Tap the map to move the pin. Drag to move the map.':'Click the map to move the pin and check that spot.')}
  amap.on('moveend overlayadd',fill);fill();
+ amap.on('baselayerchange',e=>{chart=e.layer===sect;AIR.forEach(a=>a.layer.setStyle(a.layer.options.style))});
+ amap.on('zoomstart',()=>AIR.forEach(a=>a.layer.eachLayer(l=>l.unbindTooltip()))); // numbers sized for the old zoom would pile up until the new cells arrive
  pinMk=L.marker(pin||[loc.lat,loc.lon],{alt:'Pin',keyboard:false}).addTo(amap);
  amap.on('click',e=>checkPin(e.latlng));
 }
@@ -496,7 +501,8 @@ function show(t){if(!TABS.includes(t))t='today';
  document.querySelectorAll('nav button').forEach(b=>{const on=b.dataset.t==t;b.classList.toggle('on',on);on?b.setAttribute('aria-current','page'):b.removeAttribute('aria-current');if(on)document.title=b.textContent+' | Weather'});
  TABS.forEach(x=>$(x).classList.toggle('on',x==t));if(window.L){if(t=='radar')initRadar();if(t=='drone')initAir()}/* without the map library the forecast still loads */window.scrollTo(0,0)}
 // colour key for the airspace map, built from the same table that draws it
-$('key').innerHTML=AIR.filter(a=>!/part-time/.test(a.n)).map(a=>`<span><i style="${a.o?'background:'+a.c:'border:2px solid '+a.c}"></i>${a.n}</span>`).join('')+'<span><i style="background:#8a8a8a;border:1px solid #111"></i>TFR</span><span><i style="background:#c2185b;border-radius:50%"></i>Airport or heliport</span>';
+$('key').innerHTML=AIR.filter(a=>!/part-time/.test(a.n)).map(a=>a.c?`<span><i style="${a.o?'background:'+a.c:'border:2px solid '+a.c}"></i>${a.n}</span>`
+ :`<span>LAANC ceiling, ft:${[0,50,100,200,300,400].map(v=>` <i style="background:${gridCol(v)}"></i>${v}`).join('')}</span>`).join('')+'<span><i style="background:#8a8a8a;border:1px solid #111"></i>TFR</span><span><i style="background:#c2185b;border-radius:50%"></i>Airport or heliport</span>';
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>location.hash=b.dataset.t);
 onhashchange=()=>show(location.hash.slice(1));show(location.hash.slice(1));
 
