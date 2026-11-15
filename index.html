@@ -107,9 +107,12 @@ i.s0{background:var(--ok)}i.s1{background:var(--warn)}i.s2{background:var(--bad)
 .reset{border:1px solid var(--ln);border-radius:6px;min-height:44px;padding:0 16px;font-weight:600;margin:12px 0 0}.reset:hover{background:var(--track)}
 .leaflet-container{color:#15191c;background:var(--card)} /* dark while tiles load, not a grey flash */
 /* Airspace: map beside the list of what covers the pin; stacked on phones. */
-.air2{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;align-items:start}
-#amap{height:480px;border-radius:var(--r);overflow:hidden}
-.key{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--mut);margin:8px 2px 0}
+.air2{display:grid;grid-template-columns:1.6fr 1fr;grid-template-areas:"map air" "tools air";gap:12px;align-items:start}
+#amap{grid-area:map;height:480px;border-radius:var(--r);overflow:hidden}
+#air{grid-area:air}.tools{grid-area:tools}
+.pinb{display:flex;gap:8px;margin:0}.pinb .reset{flex:1;margin:8px 0 0;padding:0 8px}
+.keyd summary{padding:12px 2px;font-weight:600} /* the key is reference material, so it stays folded until asked for */
+.key{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--mut);margin:0 2px 8px}
 .key span{display:inline-flex;align-items:center;gap:6px}.key i{width:12px;height:12px;border-radius:3px;flex:none}
 .adv{display:flex;gap:10px;padding:12px 0}.adv .dot{flex:none;margin-top:6px}.adv b,.adv small{display:block}
 i.si{background:var(--lo)}
@@ -150,17 +153,19 @@ dialog .act{display:flex;justify-content:space-between;margin-top:10px}dialog .a
  nav{top:auto;left:0;right:0;transform:none;bottom:calc(0px - var(--stretch));border-radius:0;gap:0;padding:0;border-top:1px solid var(--ln);box-shadow:none}
  nav button{flex:1;height:54px;padding:0;border-radius:0;font-size:13px;color:var(--mut)}
  nav button.on{background:none;color:var(--tx);font-weight:700;box-shadow:inset 0 3px 0 var(--acc)}
- footer{padding-bottom:110px}
+ /* keep the labels clear of the screen edge and the iPhone home bar */
+ nav{padding-bottom:max(14px,env(safe-area-inset-bottom,0px))}
+ footer{padding-bottom:calc(124px + env(safe-area-inset-bottom,0px))}
  .hero{grid-template-columns:1fr;gap:18px;padding-top:14px}
  .lead{font-size:17px}
  .dr{grid-template-columns:64px 54px 26px 34px 1fr 34px;gap:8px}.dr .tx span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)} /* hidden from view, still read aloud */
  .cols2{columns:1}
  .hr{grid-template-columns:42px 62px 1fr 1.3fr 1.2fr 10px;gap:8px}
  main,footer{padding:0 12px}.p{padding:6px 12px}
- .two,.air2{grid-template-columns:1fr}#amap{height:360px}
+ .two{grid-template-columns:1fr}
+ .air2{grid-template-columns:1fr;grid-template-areas:"map" "air" "tools"}#amap{height:46vh;min-height:300px} /* advisories sit right under the map */
  .mob{display:block}
 }
-@media(max-width:760px) and (display-mode:standalone){nav{padding-bottom:calc(env(safe-area-inset-bottom,0px)*.5)}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}button:active{transform:none}}
 </style></head><body>
 <button class="skip" onclick="$('main').focus()">Skip to the forecast</button>
@@ -177,10 +182,11 @@ dialog .act{display:flex;justify-content:space-between;margin-top:10px}dialog .a
  <section class="page" id="hourly"></section>
  <section class="page" id="drone"><div id="dw"></div>
   <h2>Airspace</h2>
-  <div class="air2"><div><div id="amap" role="region" aria-label="Airspace map"></div><p class="mut" id="ms" style="margin:8px 2px 0" aria-live="polite"></p>
-    <p style="margin:0;display:flex;flex-wrap:wrap;gap:0 8px"><button class="reset" onclick="checkPin(amap.getCenter())">Put the pin at the map centre</button><button class="reset" onclick="amap.setView(pin,amap.getZoom(),{animate:false})">Centre the map on the pin</button></p>
-    <p class="key" id="key"></p></div>
-   <div class="p" id="air" aria-live="polite"></div></div>
+  <div class="air2"><div id="amap" role="region" aria-label="Airspace map"></div>
+   <div class="p" id="air" aria-live="polite"></div>
+   <div class="tools"><p class="mut" id="ms" style="margin:0 2px" aria-live="polite"></p>
+    <p class="pinb"><button class="reset" onclick="checkPin(amap.getCenter())">Move pin to map centre</button><button class="reset" onclick="amap.setView(pin,amap.getZoom(),{animate:false})">Centre map on pin</button></p>
+    <details class="keyd"><summary>Map key</summary><p class="key" id="key"></p></details></div></div>
   <p class="mut" style="margin:12px 2px 0;max-width:70em">Airspace data comes from the FAA and the National Park Service and covers the US only. It does not replace an authorization, and it can be out of date.</p>
   <h2>Preflight checklist</h2>
   <form class="p chk" style="padding-bottom:14px">
@@ -448,8 +454,7 @@ async function checkPin(p){
 }
 function initAir(){
  if(amap){amap.invalidateSize();return}
- const phone=L.Browser.mobile; // on phones one finger scrolls the page, so the map moves with two
- amap=L.map('amap',{fadeAnimation:false,markerZoomAnimation:false,dragging:!phone}).setView(pin||[loc.lat,loc.lon],11);
+ amap=L.map('amap',{fadeAnimation:false,markerZoomAnimation:false}).setView(pin||[loc.lat,loc.lon],11);
  // plain grey base so the airspace colours carry the map; place names are a second tile layer drawn above it
  const esri=n=>L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_'+n+'/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:16,maxZoom:18,attribution:'Base map: Esri'});
  const light=L.layerGroup([esri('Base'),esri('Reference')]).addTo(amap);
@@ -468,7 +473,7 @@ function initAir(){
  async function fill(){const me=++seq,b=amap.getBounds(),e=box(b.getWest(),b.getSouth(),b.getEast(),b.getNorth()),z=amap.getZoom(),tol='&geometryPrecision=5&maxAllowableOffset='+(360/2**(z+8)).toFixed(6);let bad=0,hid=0;
   await Promise.all([...AIR,APT].map(async a=>{if(!amap.hasLayer(a.layer))return;if(z<a.z){a.layer.clearLayers();hid++;return}
    try{const f=await aq(a,e,a.max||300,tol);if(me===seq)a.layer.clearLayers().addData(f)}catch(x){bad++}}));
-  if(me===seq)$('ms').textContent=bad?'Some FAA layers did not load. Move the map to try again.':(hid?'Zoom in to see every layer. ':'')+(phone?'Tap to move the pin. Use two fingers to move the map.':'Click the map to move the pin and check that spot.')}
+  if(me===seq)$('ms').textContent=bad?'Some FAA layers did not load. Move the map to try again.':(hid?'Zoom in to see every layer. ':'')+(L.Browser.mobile?'Tap the map to move the pin. Drag to move the map.':'Click the map to move the pin and check that spot.')}
  amap.on('moveend overlayadd',fill);fill();
  pinMk=L.marker(pin||[loc.lat,loc.lon],{alt:'Pin',keyboard:false}).addTo(amap);
  amap.on('click',e=>checkPin(e.latlng));
@@ -506,7 +511,7 @@ function setLoc(l){loc=l;W=null;store('loc',l);store('locs',[l,...(store('locs')
 function listLocs(a,empty){$('res').innerHTML=a.length?'':`<p class="mut">${empty}</p>`;a.forEach(l=>{const el=document.createElement('button');el.className='r';el.textContent=l.label||l.name;el.onclick=()=>setLoc({lat:l.lat,lon:l.lon,name:l.name});$('res').appendChild(el)})}
 async function ipLoc(){try{const j=await fetch('https://ipwho.is/').then(r=>r.json());if(!j.success)throw 0;setLoc({lat:j.latitude,lon:j.longitude,name:[j.city,j.region].filter(Boolean).join(', ')+' (approx.)'})}catch(x){alert('Your location could not be found. Search for a city instead.')}}
 function gps(){!navigator.geolocation?ipLoc():navigator.geolocation.getCurrentPosition(async p=>{let name='My location';
- try{const g=await fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+p.coords.latitude+'&lon='+p.coords.longitude).then(r=>r.json()),a=g.address||{};name=[a.city||a.town||a.village||a.hamlet||a.suburb,a.state].filter(Boolean).join(', ')||name}catch(e){}
+ try{const g=await fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+p.coords.latitude+'&lon='+p.coords.longitude).then(r=>r.json()),a=g.address||{};name=[a.city||a.town||a.village||a.hamlet||a.suburb||a.municipality||a.county,a.state].filter(Boolean).join(', ')||name}catch(e){}
  setLoc({lat:p.coords.latitude,lon:p.coords.longitude,name})},ipLoc,{enableHighAccuracy:true,timeout:15000,maximumAge:60000})}
 $('bGps').onclick=gps;$('bRef').onclick=load;
 $('locBtn').onclick=()=>{$('q').value='';listLocs(store('locs')||[],'Type a city name. Places you pick will be listed here next time.');dlg.showModal()};
