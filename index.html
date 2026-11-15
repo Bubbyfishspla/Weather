@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
 /* Dialog tokens: the location dialog is a solid sheet that follows the system light/dark setting. */
-:root{color-scheme:light dark;--stretch:0px;--r:12px;
+:root{color-scheme:light dark;--r:12px;
  --bg:#f3f4f2;--card:#fff;--ln:#dcdfdb;--track:#e2e5e1;--tx:#15191c;--mut:#59636a;--acc:#b07a00;
  --sky1:#16233f;--sky2:#24385f}
 @media(prefers-color-scheme:dark){:root{--bg:#14171a;--card:#1e2226;--ln:#2e3439;--track:#343b41;--tx:#f2f4f5;--mut:#a3adb3;--acc:#f5c542}}
@@ -138,8 +138,6 @@ i.si{background:var(--lo)}
 .rc input{flex:1;accent-color:var(--acc)}.rc span{font-size:13px;min-width:120px;text-align:right}
 footer{padding-top:26px;padding-bottom:40px;font-size:13px;color:var(--mut)}
 footer p{margin:0 0 6px}
-.adj{background:var(--card);border-radius:6px;width:44px;height:44px;font-size:18px}
-.mob{display:none}
 
 dialog{background:var(--card);color:var(--tx);border:1px solid var(--ln);border-radius:var(--r);width:92%;max-width:420px;padding:14px;box-shadow:0 12px 40px rgba(0,0,0,.35)}
 dialog::backdrop{background:rgba(0,0,0,.5)}
@@ -150,7 +148,7 @@ dialog .r{display:block;width:100%;text-align:left;padding:13px 6px;border-botto
 dialog .act{display:flex;justify-content:space-between;margin-top:10px}dialog .act button{min-height:44px;padding:0 6px;font-weight:600;text-decoration:underline;text-underline-offset:2px}
 
 @media(max-width:760px){
- nav{top:auto;left:0;right:0;transform:none;bottom:calc(0px - var(--stretch));border-radius:0;gap:0;padding:0;border-top:1px solid var(--ln);box-shadow:none}
+ nav{top:auto;left:0;right:0;transform:none;bottom:0;border-radius:0;gap:0;padding:0;border-top:1px solid var(--ln);box-shadow:none}
  nav button{flex:1;height:54px;padding:0;border-radius:0;font-size:13px;color:var(--mut)}
  nav button.on{background:none;color:var(--tx);font-weight:700;box-shadow:inset 0 3px 0 var(--acc)}
  /* keep the labels clear of the screen edge and the iPhone home bar */
@@ -163,9 +161,7 @@ dialog .act{display:flex;justify-content:space-between;margin-top:10px}dialog .a
  .hr{grid-template-columns:42px 62px 1fr 1.3fr 1.2fr 10px;gap:8px}
  main,footer{padding:0 12px}.p{padding:6px 12px}
  .two{grid-template-columns:1fr}
- .air2{grid-template-columns:1fr;grid-template-areas:"map" "air" "tools"}#amap{height:46vh;min-height:300px} /* advisories sit right under the map */
- .mob{display:block}
-}
+ .air2{grid-template-columns:1fr;grid-template-areas:"map" "air" "tools"}#amap{height:46vh;min-height:300px} /* advisories sit right under the map */}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}button:active{transform:none}}
 </style></head><body>
 <button class="skip" onclick="$('main').focus()">Skip to the forecast</button>
@@ -217,9 +213,7 @@ dialog .act{display:flex;justify-content:space-between;margin-top:10px}dialog .a
 </main>
 <footer>
  <p id="upd" role="status"></p>
- <p>Weather from <a href="https://open-meteo.com">Open-Meteo</a>. Alerts from the US National Weather Service. Radar from <a href="https://github.com/JoshuaKimsey/LibreWXR">LibreWXR</a>. Sectional chart, TFRs, airports and airspace from the <a href="https://www.faa.gov/uas">FAA</a>. Park boundaries from the National Park Service. Maps © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> and Esri.</p>
- <p class="mob">Menu position <button class="adj" onclick="adj(-10)" aria-label="Move menu up">−</button> <span id="sv">0</span> <button class="adj" onclick="adj(10)" aria-label="Move menu down">+</button></p>
-</footer>
+ <p>Weather from <a href="https://open-meteo.com">Open-Meteo</a>. Alerts from the US National Weather Service. Radar from <a href="https://github.com/JoshuaKimsey/LibreWXR">LibreWXR</a>. Sectional chart, TFRs, airports and airspace from the <a href="https://www.faa.gov/uas">FAA</a>. Park boundaries from the National Park Service. Maps © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> and Esri.</p></footer>
 <dialog id="dlg" aria-label="Choose a location"><label for="q">Search for a city</label><input id="q" placeholder="For example, Denver" autocomplete="off"><div id="res" aria-live="polite"></div>
  <div class="act"><button onclick="gps()">Use my location</button><button onclick="dlg.close()">Close</button></div></dialog>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -423,7 +417,7 @@ const AIR=[
  // only surface areas need authorization (107.41); shelves that start above the ground are left out
  {n:'Controlled airspace',u:svc('Class_Airspace'),w:"(CLASS IN ('B','C','D') AND (LOWER_VAL=0 OR LOWER_VAL IS NULL)) OR LOCAL_TYPE='CLASS_E2'",f:'NAME,CLASS',z:7,c:'#2f8fe8',o:.2,
   adv:p=>[p.NAME,'Class '+p.CLASS+' down to the surface. Get authorization through LAANC or FAADroneZone before you fly.',1]},
- {n:'LAANC altitude grid',u:svc('FAA_UAS_FacilityMap_Data'),f:'CEILING,APT1_FAAID,APT1_LAANC',z:10,max:2000,c:'#1f6fb8',o:.05,
+ {n:'LAANC altitude grid',u:svc('FAA_UAS_FacilityMap_Data'),f:'CEILING,APT1_FAAID,APT1_LAANC',z:11,max:2000,/* from zoom 11 a screen holds under 2,000 cells even over a big city */c:'#1f6fb8',o:.05,
   adv:p=>['UAS Facility Map: '+p.CEILING+' ft','The highest altitude the FAA will authorize here without further review'+(p.APT1_FAAID?' ('+p.APT1_FAAID+(p.APT1_LAANC?', LAANC available':', request in FAADroneZone')+')':'')+'.',p.CEILING?1:2]},
  {n:'Restricted airspace',u:svc('Special_Use_Airspace'),w:"LOWER_VAL='0'",f:'NAME,TYPE_CODE,TIMESOFUSE',z:6,c:'#d6453d',o:.3,
   adv:p=>[p.NAME,(SUA[p.TYPE_CODE]||'Special use airspace')+' from the surface. Times of use: '+String(p.TIMESOFUSE||'not published').toLowerCase()+'.',/^[RP]$/.test(p.TYPE_CODE)?2:1]},
@@ -444,11 +438,11 @@ async function checkPin(p){
  if(me!==pinSeq)return;
  const ok=k=>res[k].status=='fulfilled',lost=res.filter(r=>r.status!='fulfilled').length,again='<button class="reset" onclick="checkPin(pin)">Check this spot again</button>';
  if(lost==res.length){$('air').innerHTML=`<p style="margin:12px 0">Airspace data for ${pos} did not load. The FAA server is shared and is sometimes busy for a minute. Until it loads, read the sectional chart on the map.<br>${again}</p>`;return}
- const adv=AIR.flatMap((a,k)=>ok(k)?res[k].value.map(f=>a.adv(f.properties)):[]).sort((x,y)=>y[2]-x[2]),free=ok(1)&&ok(2)&&!adv.some(x=>x[2]); // say "uncontrolled" only when nothing here asks for caution
+ const adv=AIR.flatMap((a,k)=>ok(k)?res[k].value.map(f=>a.adv(f.properties)):[]).sort((x,y)=>y[2]-x[2]),free=ok(1)&&ok(2)&&!adv.some(x=>x[2]); // nothing here asks for caution; an empty result is also what a pin outside the US returns, so it is never worded as permission
  const near=ok(AIR.length)&&res[AIR.length].value.map(f=>({...f.properties,d:nm(f.geometry.coordinates[1],f.geometry.coordinates[0])})).sort((x,y)=>x.d[0]-y.d[0])[0];
  const item=([t,d,s])=>`<div class="adv" role="listitem"><i class="dot s${s||'i'}" role="img" aria-label="${['Information','Caution','Restricted'][s]}"></i><div><b>${esc(t)}</b><small>${esc(d)}</small></div></div>`;
  $('air').innerHTML=`<div class="list" role="list">${kv('Pin at '+pos,adv.length?tone(adv.length+(adv.length>1?' advisories':' advisory'),adv[0][2]||'i'):tone('No advisories',0))}
- ${adv.map(item).join('')}${free?`<div class="adv" role="listitem"><i class="dot s0" role="img" aria-label="Clear"></i><div><b>Uncontrolled airspace (Class G) at the surface</b><small>No airspace authorization is needed here.</small></div></div>`:''}
+ ${adv.map(item).join('')}${free?`<div class="adv" role="listitem"><i class="dot si" role="img" aria-label="Information"></i><div><b>No controlled airspace found here in FAA data</b><small>FAA data covers the US only. Outside the US, check with the local aviation authority.</small></div></div>`:''}
  ${kv('Nearest airport or heliport',near?esc(near.NAME)+' ('+esc(near.IDENT)+')':ok(AIR.length)?'None within 10 nm':'Unavailable',near?near.d[0].toFixed(1)+' nm '+near.d[1]:'')}</div>
  <p class="mut" style="margin:10px 0">TFRs are not checked for the pin. They show as grey areas on the map; confirm at <a href="https://tfr.faa.gov">tfr.faa.gov</a>.${lost?' Some layers did not load, so this list may be incomplete.':''}</p>${lost?again:''}`;
 }
@@ -500,7 +494,7 @@ $('rng').oninput=e=>showF(+e.target.value);playing(0);
 const TABS=['today','hourly','drone','radar'];
 function show(t){if(!TABS.includes(t))t='today';
  document.querySelectorAll('nav button').forEach(b=>{const on=b.dataset.t==t;b.classList.toggle('on',on);on?b.setAttribute('aria-current','page'):b.removeAttribute('aria-current');if(on)document.title=b.textContent+' | Weather'});
- TABS.forEach(x=>$(x).classList.toggle('on',x==t));if(t=='radar')initRadar();if(t=='drone')initAir();window.scrollTo(0,0)}
+ TABS.forEach(x=>$(x).classList.toggle('on',x==t));if(window.L){if(t=='radar')initRadar();if(t=='drone')initAir()}/* without the map library the forecast still loads */window.scrollTo(0,0)}
 // colour key for the airspace map, built from the same table that draws it
 $('key').innerHTML=AIR.filter(a=>!/part-time/.test(a.n)).map(a=>`<span><i style="${a.o?'background:'+a.c:'border:2px solid '+a.c}"></i>${a.n}</span>`).join('')+'<span><i style="background:#8a8a8a;border:1px solid #111"></i>TFR</span><span><i style="background:#c2185b;border-radius:50%"></i>Airport or heliport</span>';
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>location.hash=b.dataset.t);
@@ -520,11 +514,6 @@ let st;$('q').oninput=e=>{clearTimeout(st);st=setTimeout(async()=>{const v=e.tar
   listLocs((j.results||[]).map(r=>({lat:r.latitude,lon:r.longitude,name:[r.name,r.admin1].filter(Boolean).join(', '),label:[r.name,r.admin1,r.country].filter(Boolean).join(', ')})),`No place matches “${esc(v)}”. Check the spelling or try a nearby city.`)}
  catch(x){listLocs([],'The search did not load. Check your connection and type again.')}},300)};
 
-// Menu position (phones): if the bottom menu floats above the screen edge on an installed iOS app, nudge it down
-let STR=+store('stretch')||0;
-function adj(n){STR=Math.max(-40,Math.min(120,STR+n));store('stretch',STR);applyStr()}
-function applyStr(){document.documentElement.style.setProperty('--stretch',STR+'px');$('sv').textContent=STR}
-applyStr();
 // refresh every 10 minutes, but not while someone is reading an open alert or has keyboard focus in the forecast: a redraw would close it and drop their place
-load();setInterval(()=>{if(!document.querySelector('#today :focus,#hourly :focus,#dw :focus,details[open]'))load()},600000);
+load();setInterval(()=>{if(!document.querySelector('#today :focus-visible,#hourly :focus-visible,#dw :focus-visible,details[open]'))load()},600000);
 </script></body></html>
